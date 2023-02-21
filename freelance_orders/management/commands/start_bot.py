@@ -1,31 +1,47 @@
 import telegram
-from django.core.management.base import BaseCommand
+
+from telegram import Update, ForceReply
+from telegram.ext import Updater, CommandHandler, MessageHandler
+from telegram.ext import Filters, CallbackContext
 from environs import Env
-from telegram.ext import MessageHandler, Filters
-from telegram.ext import Updater, CommandHandler
-
-
-def start(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id,
-                             text="Привет")
-
-
-def echo(update, context):
-    text = 'ECHO: ' + update.message.text
-    context.bot.send_message(chat_id=update.effective_chat.id,
-                             text=text)
+from django.core.management.base import BaseCommand
+from django.conf import settings
 
 
 class Command(BaseCommand):
-    env = Env()
-    env.read_env()
-    tg_token = env("BOT_TOKEN")
-    tg_bot = telegram.Bot(token=tg_token)
-    updater = Updater(tg_token)
-    dispatcher = updater.dispatcher
-    start_handler = CommandHandler('start', start)
-    dispatcher.add_handler(start_handler)
-    echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
-    dispatcher.add_handler(echo_handler)
-    updater.start_polling()
-    updater.idle()
+    def start(self, update: Update, context: CallbackContext) -> None:
+        user = update.effective_user
+        update.message.reply_markdown_v2(
+            fr'Hi {user.mention_markdown_v2()}\!',
+            reply_markup=ForceReply(selective=True),
+        )
+
+    def help_command(self, update: Update, context: CallbackContext) -> None:
+        update.message.reply_text('Help!')
+
+    def echo(self, update: Update, context: CallbackContext) -> None:
+        custom_keyboard = [['Сделать заказ', 'Взять заказ']]
+        reply_markup = telegram.ReplyKeyboardMarkup(
+            custom_keyboard, resize_keyboard=True
+        )
+        update.message.reply_text(
+            update.message.text, reply_markup=reply_markup
+        )
+
+    def handle(self, *args, **options):
+        env = Env()
+        env.read_env()
+        telegram_bot_token = settings.TELEGRAM_BOT_TOKEN
+
+        updater = Updater(telegram_bot_token)
+
+        dispatcher = updater.dispatcher
+
+        dispatcher.add_handler(CommandHandler("start", self.start))
+        dispatcher.add_handler(CommandHandler("help", self.help_command))
+
+        dispatcher.add_handler(
+            MessageHandler(Filters.text & ~Filters.command, self.echo)
+        )
+        updater.start_polling()
+        updater.idle()
