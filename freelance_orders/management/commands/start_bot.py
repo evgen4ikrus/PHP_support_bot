@@ -1,32 +1,85 @@
-import telegram
+import logging
+
+# import telegram
 
 from telegram import Update, ForceReply
+from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from telegram.ext import Updater, CommandHandler, MessageHandler
-from telegram.ext import Filters, CallbackContext
+from telegram.ext import Filters, CallbackContext, RegexHandler,  ConversationHandler
 from environs import Env
+
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
 
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
+logger = logging.getLogger(__name__)
+
+
 class Command(BaseCommand):
     def start(self, update: Update, context: CallbackContext) -> None:
-        user = update.effective_user
-        update.message.reply_markdown_v2(
-            fr'Hi {user.mention_markdown_v2()}\!',
-            reply_markup=ForceReply(selective=True),
+        reply_keyboard = [['Сделать заказ', 'Взять заказ']]
+        user = update.effective_user.first_name
+        reply_markup = ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
         )
+        message = fr'Привет, {user}'
 
-    def help_command(self, update: Update, context: CallbackContext) -> None:
-        update.message.reply_text('Help!')
-
-    def echo(self, update: Update, context: CallbackContext) -> None:
-        custom_keyboard = [['Сделать заказ', 'Взять заказ']]
-        reply_markup = telegram.ReplyKeyboardMarkup(
-            custom_keyboard, resize_keyboard=True
-        )
         update.message.reply_text(
-            update.message.text, reply_markup=reply_markup
+            message,
+            reply_markup=reply_markup
         )
+
+        return 1
+
+    def first(self, update: Update, context: CallbackContext) -> None:
+        reply_keyboard = [['Мои заказы', 'Регистрация'], ['Назад']]
+        user = update.effective_user.first_name
+        reply_markup = ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+        )
+        message = fr'Ты на странице подрядчика, {user}'
+
+        update.message.reply_text(
+            message,
+            reply_markup=reply_markup
+        )
+
+        return 2
+
+    def get_orders(self, update: Update, context: CallbackContext) -> None:
+        reply_keyboard = [['Заказ 1', 'Заказ 2'], ['Назад']]
+        user = update.effective_user.first_name
+        reply_markup = ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+        )
+        message = fr'Ты на странице заказов, {user}'
+
+        update.message.reply_text(
+            message,
+            reply_markup=reply_markup
+        )
+
+        return 3
+
+    def register(self, update: Update, context: CallbackContext) -> None:
+        reply_keyboard = [['Назад']]
+        user = update.effective_user.first_name
+        reply_markup = ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+        )
+        message = fr'Ты на странице регистрации, {user}'
+
+        update.message.reply_text(
+            message,
+            reply_markup=reply_markup
+        )
+
+        return 3
 
     def handle(self, *args, **options):
         env = Env()
@@ -37,11 +90,29 @@ class Command(BaseCommand):
 
         dispatcher = updater.dispatcher
 
-        dispatcher.add_handler(CommandHandler("start", self.start))
-        dispatcher.add_handler(CommandHandler("help", self.help_command))
+        conv_handler = ConversationHandler(
+            entry_points=[CommandHandler('start', self.start)],
+            states={
+                1: [
+                    RegexHandler('^(Взять заказ)$', self.first),
+                    RegexHandler('^(Сделать заказ)$', self.first)
+                ],
+                2: [
+                    RegexHandler('^(Мои заказы)$', self.get_orders),
+                    RegexHandler('^(Регистрация)$', self.register),
+                    RegexHandler('^(Назад)$', self.start),
+                ],
+                3: [
+                    RegexHandler('^(Мои заказы)$', self.first),
+                    RegexHandler('^(Регистрация)$', self.register),
+                    RegexHandler('^(Назад)$', self.first),
+                ],
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel)]
+            )
 
-        dispatcher.add_handler(
-            MessageHandler(Filters.text & ~Filters.command, self.echo)
-        )
+        dispatcher.add_handler(conv_handler)
+        updater.dispatcher.add_handler(CommandHandler('start', conv_handler))
+        dispatcher.add_error_handler(self.error)
         updater.start_polling()
         updater.idle()
