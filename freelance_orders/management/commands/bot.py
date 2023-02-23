@@ -8,6 +8,8 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater)
 
+from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_freelancer_orders_keyboard
+
 _database = None
 
 
@@ -41,6 +43,9 @@ def handle_users_reply(bot, update):
         'MENU': handle_general_menu,
         'CUSTOMER_MENU': handle_customer_menu,
         'FREELANCER_MENU': handle_freelancer_menu,
+        'FREELANCER_ORDERS': handle_freelancer_orders,
+        'FREELANCER_ORDER_DESCRIPTION': handle_freelancer_order_description,
+        'CURRENT_FREELANCER_ORDERS': handle_current_freelancer_orders,
     }
     state_handler = states_functions[user_state]
     next_state = state_handler(bot, update)
@@ -52,9 +57,62 @@ def handle_customer_menu(bot, update):
     pass
 
 
-# я буду обрабатывать меню фрилансера
+def handle_current_freelancer_orders(bot, update):
+    query = update.callback_query
+    if query.data == 'Назад':
+        keyboard = get_freelancer_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(text='Меню фрилансера:', chat_id=query.message.chat_id, reply_markup=reply_markup)
+        return 'FREELANCER_MENU'
+
+
+def handle_freelancer_order_description(bot, update):
+    query = update.callback_query
+    if query.data == 'Взять в работу':
+        keyboard = get_freelancer_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(text='Вы взяли КАКОЙ-ТО заказ в работу:', chat_id=query.message.chat_id)
+        bot.send_message(text='Меню фрилансера:', chat_id=query.message.chat_id, reply_markup=reply_markup)
+        return 'FREELANCER_MENU'
+    if query.data == 'Назад':
+        keyboard = get_freelancer_orders_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(text='Выберите заказ:', chat_id=query.message.chat_id, reply_markup=reply_markup)
+        return 'FREELANCER_ORDERS'
+
+
+def handle_freelancer_orders(bot, update):
+    query = update.callback_query
+    if query.data == 'Вернуться в меню':
+        keyboard = get_freelancer_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(text='Меню фрилансера:', chat_id=query.message.chat_id, reply_markup=reply_markup)
+        return 'FREELANCER_MENU'
+    if query.data == 'Заказ':
+        keyboard = [
+            [InlineKeyboardButton('Взять в работу', callback_data='Взять в работу')],
+            [InlineKeyboardButton('Назад', callback_data='Назад')],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(text='Здесь будет описание заказа:', chat_id=query.message.chat_id, reply_markup=reply_markup)
+        return 'FREELANCER_ORDER_DESCRIPTION'
+
+
 def handle_freelancer_menu(bot, update):
-    pass
+    query = update.callback_query
+    if query.data == 'Найти заказ':
+        keyboard = get_freelancer_orders_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(text='Выберите заказ:', chat_id=query.message.chat_id, reply_markup=reply_markup)
+        return 'FREELANCER_ORDERS'
+    if query.data == 'Выполняемые заказы':
+        keyboard = [
+            [InlineKeyboardButton('Назад', callback_data='Назад')],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(text='Здесь будут выполняемые заказы:', chat_id=query.message.chat_id,
+                         reply_markup=reply_markup)
+        return 'CURRENT_FREELANCER_ORDERS'
 
 
 # я буду определять пользователь кликнул на Заказчик или Фрилансер
@@ -69,20 +127,19 @@ def handle_general_menu(bot, update):
         bot.send_message(text='меню заказчика', chat_id=query.message.chat_id, reply_markup=reply_markup)
         return 'CUSTOMER_MENU'
     elif query.data == 'Фрилансер':
-        keyboard = [
-            [InlineKeyboardButton('Найти заказ', callback_data='Найти заказ')],
-            [InlineKeyboardButton('Что-то еще', callback_data='Что-то еще')],
-        ]
+        keyboard = get_freelancer_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
-        bot.send_message(text='меню заказчика', chat_id=query.message.chat_id, reply_markup=reply_markup)
+        bot.send_message(text='Меню фрилансера:', chat_id=query.message.chat_id, reply_markup=reply_markup)
         return 'FREELANCER_MENU'
 
 
 def start(bot, update):
     user = update.effective_user.first_name
     keyboard = [
-        [InlineKeyboardButton('Я заказчик', callback_data='Заказчик')],
-        [InlineKeyboardButton('Я фрилансер', callback_data='Фрилансер')],
+        [
+            InlineKeyboardButton('Я заказчик', callback_data='Заказчик'),
+            InlineKeyboardButton('Я фрилансер', callback_data='Фрилансер')
+        ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     message = f'Привет, {user}'
