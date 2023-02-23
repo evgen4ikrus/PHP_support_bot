@@ -2,3 +2,5 @@ Django==3.2.7
 environs==9.5.0
 flake8==5.0.4
 python-telegram-bot==13.12
+django-extensions==3.2.1
+django-fsm==2.8.1
