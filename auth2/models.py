@@ -24,10 +24,9 @@ class User(AbstractUser):
 class NonStaffUsers(User):
     """The only difference is redefined saving process for non-staff users."""
 
-    def save_user(self, *args, **kwargs):
+    def save_user_with_type(self, *args, **kwargs):
         """Add a user type depending on from what model (Client or Freelancer) it was created"""
-        if not self.pk:
-            self.type = self.base_type
+        self.type = self.base_type
         return super().save(*args, **kwargs)
 
     def create_profile(self) -> None:
@@ -43,7 +42,7 @@ class NonStaffUsers(User):
         """
         if not self.pk:
             self.tg_chat_id = self.username
-            self.save_user(self, *args, **kwargs)
+            self.save_user_with_type(self, *args, **kwargs)
             self.create_profile()
         else:
             self.username = self.tg_chat_id
