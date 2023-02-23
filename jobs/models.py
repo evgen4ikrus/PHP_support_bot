@@ -15,6 +15,7 @@ class Job(TimeStampedModel):
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         related_name="orders",
         verbose_name="Клиент",
@@ -22,13 +23,14 @@ class Job(TimeStampedModel):
     freelancer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         related_name="tasks",
-        verbose_name="Клиент",
+        verbose_name="Фрилансер",
     )
     status = FSMField("Статус", default=Statuses.CREATED)
-    tg_chat_id = models.CharField("Телеграм чат ID", max_length=30)
-    deadline = models.DateTimeField("Предпологаемая дата выполнения")
+    tg_chat_id = models.CharField("Телеграм чат ID", max_length=30, blank=True)
+    deadline = models.DateTimeField("Предпологаемая дата выполнения", null=True, blank=True)
 
     class Meta:
         verbose_name = "Работа"
