@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'auth2',
+    'jobs',
+    'payrates',
+    'products',
     'freelance_orders',
 ]
 
