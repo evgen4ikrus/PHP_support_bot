@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'jobs',
     'payrates',
     'products',
+    'purchases',
     'freelance_orders',
 ]
 
