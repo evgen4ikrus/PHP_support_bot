@@ -120,8 +120,10 @@ def handle_general_menu(bot, update):
     query = update.callback_query
     if query.data == 'Заказчик':
         keyboard = [
-            [InlineKeyboardButton('Сделать заказ', callback_data='Сделать заказ')],
-            [InlineKeyboardButton('Что-то еще', callback_data='Что-то еще')],
+            [
+                InlineKeyboardButton('Сделать заказ', callback_data='Сделать заказ'),
+                InlineKeyboardButton('Что-то еще', callback_data='Что-то еще')
+            ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(text='меню заказчика', chat_id=query.message.chat_id, reply_markup=reply_markup)
