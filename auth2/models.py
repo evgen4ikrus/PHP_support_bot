@@ -125,7 +125,7 @@ class Client(NonStaffUsers):
         verbose_name_plural = "Клиенты"
 
     @property
-    def extra(self):
+    def profile(self):
         return self.clientprofile
 
 
@@ -139,5 +139,5 @@ class Freelancer(NonStaffUsers):
         verbose_name_plural = "Фрилансеры"
 
     @property
-    def extra(self):
+    def profile(self):
         return self.freelancerprofile
