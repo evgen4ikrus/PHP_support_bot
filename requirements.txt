@@ -3,4 +3,5 @@ environs==9.5.0
 flake8==5.0.4
 python-telegram-bot==11.1.0
 redis==4.3.4
-
+django-extensions==3.2.1
+django-fsm==2.8.1
