@@ -1,10 +1,7 @@
-import datetime
-
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.paginator import Paginator
 from django.db import models
-from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
 from jobs.models import Job
@@ -147,6 +144,11 @@ class Client(NonStaffUsers):
                 description=description,
             )
 
+    def get_my_orders(self, page_number: int = 1) -> Paginator:
+        jobs = Job.objects.filter(client=self)
+        paginator = Paginator(jobs, 5)
+        return paginator.get_page(page_number)
+
 
 class Freelancer(NonStaffUsers):
     base_type = User.Types.FREELANCER
@@ -161,13 +163,8 @@ class Freelancer(NonStaffUsers):
     def profile(self):
         return self.freelancerprofile
 
-    def get_job_list_paginator(self, page_number: int = 1) -> Paginator:
+    @staticmethod
+    def get_job_list_paginator(page_number: int = 1) -> Paginator:
         jobs = Job.objects.filter(status=Job.Statuses.CREATED)
         paginator = Paginator(jobs, 5)
         return paginator.get_page(page_number)
-
-    @transaction.atomic()
-    def take_job(self, job: Job, deadline: datetime.datetime) -> Job:
-        job.deadline = deadline
-        job.save()
-        return self.jobs.add(job)
