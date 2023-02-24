@@ -4,9 +4,8 @@ from textwrap import dedent
 
 from telegram import Update
 from telegram import ReplyKeyboardMarkup
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext import CallbackContext, RegexHandler,  ConversationHandler
-from environs import Env
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
@@ -20,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # константы 0, 1, 3
-MENU, CL_ORDERS, FR_ORDERS = range(3)
+MENU, CL_ORDERS, FR_ORDERS, END_ORDER = range(4)
 
 
 class Command(BaseCommand):
@@ -39,7 +38,7 @@ class Command(BaseCommand):
         )
 
         return MENU
-    
+
     # Меню клиента, аналогия со стартом(так же ловит его ввод и возращает константу)
     def client(self, update: Update, context: CallbackContext) -> CL_ORDERS:
         reply_keyboard = [['Мои заявки', 'Оставить заявку']]
@@ -83,17 +82,49 @@ class Command(BaseCommand):
             reply_markup=reply_markup
         )
 
-    def make_order(self, update: Update, context: CallbackContext):
-        reply_keyboard = [["Оставить заявку"], ['Меню клиента']]
+    def make_order(self, update: Update, context: CallbackContext) -> END_ORDER:
+        message = '''\
+            Примеры заявок:
+            Здравствуйте, нужно добавить в интернет-магазин фильтр товаров по цвету
+
+            Здравствуйте, нужно выгрузить товары с сайта в Excel-таблице
+
+            Здравствуйте, нужно загрузить 450 SKU на сайт из Execel таблицы
+
+            Здравствуйте, хочу провести на сайте акцию, хочу разместить баннер и добавить функционал, чтобы впридачу к акционным товарам выдавался приз
+
+
+            Оставьте вашу заявку
+        '''
+        message = dedent(message)
+
+        update.message.reply_text(
+            message
+        )
+
+        return END_ORDER
+
+    def end_order(self, update: Update, context: CallbackContext):
+        context.user_data[END_ORDER] = update.message.text
+        reply_keyboard = [['Меню клиента']]
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
         )
-        message = 'Оставить заявку'
+
+        message = f'''\
+            Ваша заявка: {context.user_data[END_ORDER]}
+
+            Ваша заявка принята!
+            В течении дня с вами свяжется менеджер.
+        '''
+        message = dedent(message)
 
         update.message.reply_text(
             message,
             reply_markup=reply_markup
         )
+
+        return CL_ORDERS
 
     def freelancer_orders(self, update: Update, context: CallbackContext):
         reply_keyboard = [[1, 2, 3], ['Меню фрилансера']]
@@ -129,8 +160,6 @@ class Command(BaseCommand):
         return ConversationHandler.END
 
     def handle(self, *args, **options):
-        env = Env()
-        env.read_env()
         telegram_bot_token = settings.TELEGRAM_BOT_TOKEN
 
         updater = Updater(telegram_bot_token)
@@ -156,6 +185,9 @@ class Command(BaseCommand):
                     RegexHandler('^(Мои заказы)$', self.freelancer_orders),
                     RegexHandler('^(Взять заказ)$', self.take_order),
                     RegexHandler('^(Меню фрилансера)$', self.freelancer)
+                ],
+                END_ORDER: [
+                    MessageHandler(Filters.all, self.end_order)
                 ]
             },
             fallbacks=[CommandHandler('cancel', self.cancel)]
