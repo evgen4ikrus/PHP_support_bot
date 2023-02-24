@@ -28,7 +28,7 @@ class NonStaffUsers(User):
         """Create a user with initial data"""
         self.type = self.base_type
         self.is_active = False
-        return super().save(*args, **kwargs)
+        self.save()
 
     def create_profile(self) -> None:
         if self.type == self.Types.CLIENT:
@@ -42,7 +42,11 @@ class NonStaffUsers(User):
         Modifying: changing a telegram chat id changes a username field
         """
         if not self.pk:
-            self.tg_chat_id = self.username
+            if self.username:
+                self.tg_chat_id = self.username
+            elif self.tg_chat_id:
+                self.username = self.tg_chat_id
+            super().save(*args, **kwargs)
             self.save_user_with_initial_data(self, *args, **kwargs)
             self.create_profile()
         else:
