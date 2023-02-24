@@ -2,7 +2,8 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
+from django.core.paginator import Paginator
+from jobs.models import Job
 
 class User(AbstractUser):
     class Types(models.TextChoices):
@@ -28,7 +29,7 @@ class NonStaffUsers(User):
         """Create a user with initial data"""
         self.type = self.base_type
         self.is_active = False
-        return super().save(*args, **kwargs)
+        self.save()
 
     def create_profile(self) -> None:
         if self.type == self.Types.CLIENT:
@@ -42,7 +43,11 @@ class NonStaffUsers(User):
         Modifying: changing a telegram chat id changes a username field
         """
         if not self.pk:
-            self.tg_chat_id = self.username
+            if self.username:
+                self.tg_chat_id = self.username
+            elif self.tg_chat_id:
+                self.username = self.tg_chat_id
+            super().save(*args, **kwargs)
             self.save_user_with_initial_data(self, *args, **kwargs)
             self.create_profile()
         else:
@@ -142,3 +147,8 @@ class Freelancer(NonStaffUsers):
     @property
     def profile(self):
         return self.freelancerprofile
+
+    def get_job_list_paginator(self, page_number: int = 1):
+        jobs = Job.objects.filter(status=Job.Statuses.CREATED)
+        paginator = Paginator(jobs, 5)
+        return paginator.get_page(page_number)
