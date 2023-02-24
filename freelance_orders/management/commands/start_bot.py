@@ -1,12 +1,11 @@
 import logging
+
 from textwrap import dedent
 
-# import telegram
-
-from telegram import Update, ForceReply
-from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
-from telegram.ext import Updater, CommandHandler, MessageHandler
-from telegram.ext import Filters, CallbackContext, RegexHandler,  ConversationHandler
+from telegram import Update
+from telegram import ReplyKeyboardMarkup
+from telegram.ext import Updater, CommandHandler
+from telegram.ext import CallbackContext, RegexHandler,  ConversationHandler
 from environs import Env
 
 from django.core.management.base import BaseCommand
@@ -20,37 +19,14 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-
-FIRSTNAME, LASTNAME, PHONENUMBER = range(10, 13)
+# константы 0, 1, 3
+MENU, CL_ORDERS, FR_ORDERS = range(3)
 
 
 class Command(BaseCommand):
-    def info(self, update: Update, context: CallbackContext) -> None:
-        message = 'Здесь информация о нашей компании'
-        update.message.reply_text(
-            message
-        )
-
-    def customer(self, update: Update, context: CallbackContext) -> None:
-        message = 'Здесь информация для заказчиков'
-        update.message.reply_text(
-            message
-        )
-
-    def performer(self, update: Update, context: CallbackContext) -> None:
-        message = 'Здесь информация для исполнителей'
-        update.message.reply_text(
-            message
-        )
-
-    def tariff(self, update: Update, context: CallbackContext) -> None:
-        message = 'Здесь информация о наших тарифах'
-        update.message.reply_text(
-            message
-        )
-
-    def start(self, update: Update, context: CallbackContext) -> None:
-        reply_keyboard = [['Сделать заказ', 'Взять заказ']]
+    # главное меню после вызова старт (клиент фрилансер) чекни MENU
+    def start(self, update: Update, context: CallbackContext) -> MENU:
+        reply_keyboard = [['Клиент', 'Фрилансер']]
         user = update.effective_user.first_name
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
@@ -62,10 +38,11 @@ class Command(BaseCommand):
             reply_markup=reply_markup
         )
 
-        return 1
-
-    def first(self, update: Update, context: CallbackContext) -> None:
-        reply_keyboard = [['Мои заказы', 'Регистрация'], ['Назад', 'Закрыть']]
+        return MENU
+    
+    # Меню клиента, аналогия со стартом(так же ловит его ввод и возращает константу)
+    def client(self, update: Update, context: CallbackContext) -> CL_ORDERS:
+        reply_keyboard = [['Мои заявки', 'Оставить заявку']]
         user = update.effective_user.first_name
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
@@ -77,82 +54,70 @@ class Command(BaseCommand):
             reply_markup=reply_markup
         )
 
-        return 2
+        return CL_ORDERS
 
-    def get_orders(self, update: Update, context: CallbackContext) -> None:
-        reply_keyboard = [
-            [
-                'Заказ 1',
-                'Заказ 2',
-                'Заказ 3',
-                'Заказ 4',
-                'Заказ 5'
-            ],
-            ['Назад']
-        ]
+    def freelancer(self, update: Update, context: CallbackContext) -> FR_ORDERS:
+        reply_keyboard = [['Мои заказы', 'Взять заказ']]
         user = update.effective_user.first_name
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
         )
-        message = fr'Ты на странице заказов, {user}'
+        message = fr'Ты на странице подрядчика, {user}'
 
         update.message.reply_text(
             message,
             reply_markup=reply_markup
         )
 
-        return 3
+        return FR_ORDERS
 
-    def register(self, update: Update, context: CallbackContext) -> None:
-        message = 'Введите ваше имя:'
-
-        update.message.reply_text(
-            message
-        )
-
-        return FIRSTNAME
-
-    def get_firstname(self, update: Update, context: CallbackContext):
-        context.user_data[FIRSTNAME] = update.message.text
-        message = 'Введите вашу фамилию:'
-
-        update.message.reply_text(
-            message
-        )
-
-        return LASTNAME
-
-    def get_lastname(self, update: Update, context: CallbackContext):
-        context.user_data[LASTNAME] = update.message.text
-        message = 'Введите ваш номер телефона:'
-
-        update.message.reply_text(
-            message
-        )
-
-        return PHONENUMBER
-
-    def get_phonenumber(self, update: Update, context: CallbackContext):
-        reply_keyboard = [['Меню']]
+    def client_orders(self, update: Update, context: CallbackContext):
+        reply_keyboard = [[1, 2], ['Меню клиента']]
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
         )
-        context.user_data[PHONENUMBER] = update.message.text
-        message = f'''\
-            Регистрация завершена!
-            Ваше имя: {context.user_data[FIRSTNAME]}
-            Ваша фамилия: {context.user_data[LASTNAME]}
-            Ваш номер телефона: {context.user_data[PHONENUMBER]}
-        '''
-
-        message = dedent(message)
+        message = 'Ты на странице заказов клиента'
 
         update.message.reply_text(
             message,
             reply_markup=reply_markup
         )
 
-        return 2
+    def make_order(self, update: Update, context: CallbackContext):
+        reply_keyboard = [["Оставить заявку"], ['Меню клиента']]
+        reply_markup = ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+        )
+        message = 'Оставить заявку'
+
+        update.message.reply_text(
+            message,
+            reply_markup=reply_markup
+        )
+
+    def freelancer_orders(self, update: Update, context: CallbackContext):
+        reply_keyboard = [[1, 2, 3], ['Меню фрилансера']]
+        reply_markup = ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+        )
+        message = 'Заказы фрилансера'
+
+        update.message.reply_text(
+            message,
+            reply_markup=reply_markup
+        )
+
+    def take_order(self, update: Update, context: CallbackContext):
+        reply_keyboard = [['Взять заказ'], ['Меню фрилансера']]
+        reply_markup = ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+        )
+        message = 'Взять заказ'
+
+        update.message.reply_text(
+            message,
+            reply_markup=reply_markup
+        )
 
     def cancel(self, update: Update, context: CallbackContext):
         user = update.message.from_user
@@ -175,39 +140,27 @@ class Command(BaseCommand):
         conv_handler = ConversationHandler(
             entry_points=[CommandHandler('start', self.start)],
             states={
-                1: [
-                    RegexHandler('^(Взять заказ)$', self.first),
-                    RegexHandler('^(Сделать заказ)$', self.first)
+                # ловит ввод от юзера, и согласно его вводу вызывает функцию в зависимости от выбора
+                MENU: [
+                    RegexHandler('^(Клиент)$', self.client),
+                    RegexHandler('^(Фрилансер)$', self.freelancer)
                 ],
-                2: [
-                    RegexHandler('^(Мои заказы)$', self.get_orders),
-                    RegexHandler('^(Регистрация)$', self.register),
-                    RegexHandler('^(Назад)$', self.start),
-                    RegexHandler('^(Закрыть)$', self.cancel),
-                    RegexHandler('^(Меню)$', self.start)
+                # дальше от выбора юзера вызывается функция которая так же вызывает константу
+                # либо для клиета/фрилансера по вводу которых отлавливается какую функцию вызвать
+                CL_ORDERS: [
+                    RegexHandler('^(Мои заявки)$', self.client_orders),
+                    RegexHandler('^(Оставить заявку)$', self.make_order),
+                    RegexHandler('^(Меню клиента)$', self.client)
                 ],
-                3: [
-                    RegexHandler('^(Мои заказы)$', self.get_orders),
-                    RegexHandler('^(Регистрация)$', self.register),
-                    RegexHandler('^(Назад)$', self.first),
-                ],
-                FIRSTNAME: [
-                    MessageHandler(Filters.all, self.get_firstname, pass_user_data=True),
-                ],
-                LASTNAME: [
-                    MessageHandler(Filters.all, self.get_lastname, pass_user_data=True),
-                ],
-                PHONENUMBER: [
-                    MessageHandler(Filters.all, self.get_phonenumber, pass_user_data=True),
-                ],
+                FR_ORDERS: [
+                    RegexHandler('^(Мои заказы)$', self.freelancer_orders),
+                    RegexHandler('^(Взять заказ)$', self.take_order),
+                    RegexHandler('^(Меню фрилансера)$', self.freelancer)
+                ]
             },
             fallbacks=[CommandHandler('cancel', self.cancel)]
         )
 
         dispatcher.add_handler(conv_handler)
-        dispatcher.add_handler(CommandHandler('info', self.info))
-        dispatcher.add_handler(CommandHandler('customer', self.customer))
-        dispatcher.add_handler(CommandHandler('performer', self.performer))
-        dispatcher.add_handler(CommandHandler('tariff', self.tariff))
         updater.start_polling()
         updater.idle()
