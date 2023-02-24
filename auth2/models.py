@@ -164,7 +164,7 @@ class Freelancer(NonStaffUsers):
         return self.freelancerprofile
 
     @staticmethod
-    def get_job_list_paginator(page_number: int = 1) -> Paginator:
+    def get_job_list(page_number: int = 1) -> Paginator:
         jobs = Job.objects.filter(status=Job.Statuses.CREATED)
         paginator = Paginator(jobs, 5)
         return paginator.get_page(page_number)
