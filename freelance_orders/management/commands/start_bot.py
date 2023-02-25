@@ -4,12 +4,13 @@ from textwrap import dedent
 
 from telegram import Update
 from telegram import ReplyKeyboardMarkup
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext import CallbackContext, RegexHandler,  ConversationHandler
-from environs import Env
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
+from auth2.models import Client
+from jobs.models import Job
 
 
 logging.basicConfig(
@@ -20,7 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # константы 0, 1, 3
-MENU, CL_ORDERS, FR_ORDERS = range(3)
+MENU, CL_ORDERS, FR_ORDERS, END_ORDER = range(4)
 
 
 class Command(BaseCommand):
@@ -39,10 +40,13 @@ class Command(BaseCommand):
         )
 
         return MENU
-    
+
     # Меню клиента, аналогия со стартом(так же ловит его ввод и возращает константу)
     def client(self, update: Update, context: CallbackContext) -> CL_ORDERS:
         reply_keyboard = [['Мои заявки', 'Оставить заявку']]
+        Client.objects.get_or_create(
+            tg_chat_id=update.message.chat_id
+        )
         user = update.effective_user.first_name
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
@@ -72,7 +76,17 @@ class Command(BaseCommand):
         return FR_ORDERS
 
     def client_orders(self, update: Update, context: CallbackContext):
-        reply_keyboard = [[1, 2], ['Меню клиента']]
+        client = Client.objects.get(tg_chat_id=update.message.chat_id)
+        page = client.get_my_orders()
+        reply_keyboard = [
+            [order.id for order in page],
+            ['Меню клиента']
+            ]
+        if page.has_next:
+            reply_keyboard = [
+                [order.id for order in page],
+                ['Следующие'], ['Меню клиента']
+            ]
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
         )
@@ -83,17 +97,78 @@ class Command(BaseCommand):
             reply_markup=reply_markup
         )
 
-    def make_order(self, update: Update, context: CallbackContext):
-        reply_keyboard = [["Оставить заявку"], ['Меню клиента']]
+        return CL_ORDERS
+
+    def get_order(self, update: Update, context: CallbackContext) -> CL_ORDERS:
+        context.user_data[CL_ORDERS] = update.message.text
+        order = Job.objects.get(id=context.user_data[CL_ORDERS])
+        message = f'''\
+            ID заявки: {context.user_data[CL_ORDERS]}
+            Статус заявки: {order.status}
+            Описание заявки: {order.description}
+            Ваш чат ID: {order.client}
+        '''
+        message = dedent(message)
+
+        reply_keyboard = [['Меню клиента']]
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
         )
-        message = 'Оставить заявку'
+        update.message.reply_text(
+            message,
+            reply_markup=reply_markup
+        )
+
+        return CL_ORDERS
+
+    def make_order(self, update: Update, context: CallbackContext) -> END_ORDER:
+        message = '''\
+            Примеры заявок:
+            Здравствуйте, нужно добавить в интернет-магазин фильтр товаров по цвету
+
+            Здравствуйте, нужно выгрузить товары с сайта в Excel-таблице
+
+            Здравствуйте, нужно загрузить 450 SKU на сайт из Execel таблицы
+
+
+            Оставьте вашу заявку
+        '''
+        message = dedent(message)
+
+        update.message.reply_text(
+            message
+        )
+
+        return END_ORDER
+
+    def end_order(self, update: Update, context: CallbackContext):
+        context.user_data[END_ORDER] = update.message.text
+        reply_keyboard = [['Меню клиента']]
+        title = f'Заявка {update.message.chat_id}'
+        client = Client.objects.get(tg_chat_id=update.message.chat_id)
+        Job.objects.get_or_create(
+            client=client,
+            title=title,
+            description=context.user_data[END_ORDER]
+        )
+        reply_markup = ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+        )
+
+        message = f'''\
+            Ваша заявка: {context.user_data[END_ORDER]}
+
+            Ваша заявка принята!
+            В течении дня с вами свяжется менеджер.
+        '''
+        message = dedent(message)
 
         update.message.reply_text(
             message,
             reply_markup=reply_markup
         )
+
+        return CL_ORDERS
 
     def freelancer_orders(self, update: Update, context: CallbackContext):
         reply_keyboard = [[1, 2, 3], ['Меню фрилансера']]
@@ -129,8 +204,6 @@ class Command(BaseCommand):
         return ConversationHandler.END
 
     def handle(self, *args, **options):
-        env = Env()
-        env.read_env()
         telegram_bot_token = settings.TELEGRAM_BOT_TOKEN
 
         updater = Updater(telegram_bot_token)
@@ -142,20 +215,25 @@ class Command(BaseCommand):
             states={
                 # ловит ввод от юзера, и согласно его вводу вызывает функцию в зависимости от выбора
                 MENU: [
-                    RegexHandler('^(Клиент)$', self.client),
-                    RegexHandler('^(Фрилансер)$', self.freelancer)
+                    MessageHandler(Filters.regex(r'Клиент'), self.client),
+                    MessageHandler(Filters.regex(r'Фрилансер'), self.freelancer)
                 ],
                 # дальше от выбора юзера вызывается функция которая так же вызывает константу
                 # либо для клиета/фрилансера по вводу которых отлавливается какую функцию вызвать
                 CL_ORDERS: [
-                    RegexHandler('^(Мои заявки)$', self.client_orders),
-                    RegexHandler('^(Оставить заявку)$', self.make_order),
-                    RegexHandler('^(Меню клиента)$', self.client)
+                    MessageHandler(Filters.regex(r'Мои заявки'), self.client_orders),
+                    MessageHandler(Filters.regex(r'Оставить заявку'), self.make_order),
+                    MessageHandler(Filters.regex(r'Меню клиента'), self.client),
+                    MessageHandler(Filters.regex(r'Следующие'), self.client_orders),
+                    MessageHandler(Filters.regex(r'\d{2}'), self.get_order),
                 ],
                 FR_ORDERS: [
-                    RegexHandler('^(Мои заказы)$', self.freelancer_orders),
-                    RegexHandler('^(Взять заказ)$', self.take_order),
-                    RegexHandler('^(Меню фрилансера)$', self.freelancer)
+                    MessageHandler(Filters.regex(r'Мои заказы'), self.freelancer_orders),
+                    MessageHandler(Filters.regex(r'Взять заказ'), self.take_order),
+                    MessageHandler(Filters.regex(r'Меню фрилансера'), self.freelancer),
+                ],
+                END_ORDER: [
+                    MessageHandler(Filters.all, self.end_order)
                 ]
             },
             fallbacks=[CommandHandler('cancel', self.cancel)]
