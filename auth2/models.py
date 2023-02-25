@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django.core.paginator import Paginator
 from jobs.models import Job
 
+
 class User(AbstractUser):
     class Types(models.TextChoices):
         CLIENT = "CLIENT", "Клиент"

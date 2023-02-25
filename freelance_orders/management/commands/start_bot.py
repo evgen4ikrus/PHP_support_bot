@@ -9,6 +9,8 @@ from telegram.ext import CallbackContext, RegexHandler,  ConversationHandler
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
+from auth2.models import Client
+from jobs.models import Job
 
 
 logging.basicConfig(
@@ -42,6 +44,9 @@ class Command(BaseCommand):
     # Меню клиента, аналогия со стартом(так же ловит его ввод и возращает константу)
     def client(self, update: Update, context: CallbackContext) -> CL_ORDERS:
         reply_keyboard = [['Мои заявки', 'Оставить заявку']]
+        Client.objects.get_or_create(
+            tg_chat_id=update.message.chat_id
+        )
         user = update.effective_user.first_name
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
@@ -91,8 +96,6 @@ class Command(BaseCommand):
 
             Здравствуйте, нужно загрузить 450 SKU на сайт из Execel таблицы
 
-            Здравствуйте, хочу провести на сайте акцию, хочу разместить баннер и добавить функционал, чтобы впридачу к акционным товарам выдавался приз
-
 
             Оставьте вашу заявку
         '''
@@ -107,6 +110,12 @@ class Command(BaseCommand):
     def end_order(self, update: Update, context: CallbackContext):
         context.user_data[END_ORDER] = update.message.text
         reply_keyboard = [['Меню клиента']]
+        title = f'Заявка {update.message.chat_id}'
+        Job.objects.get_or_create(
+            client=update.message.chat_id,
+            title=title,
+            description=context.user_data[END_ORDER]
+        )
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
         )
