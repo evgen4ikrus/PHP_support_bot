@@ -9,6 +9,7 @@ from django_extensions.db.models import TimeStampedModel
 from django_fsm import FSMField
 
 from auth2.models import User
+from products.exceptions import InUseSubscriptionWasRemoved
 
 
 class Product(TimeStampedModel):
@@ -47,9 +48,14 @@ class Subscription(Product):
     @classmethod
     def user_has_active_subscription(cls, user: User) -> Optional[Subscription]:
         last_purchase = Purchase.objects.filter(user=user).last()
+        last_subscription = None
         if last_purchase and last_purchase.created >= timezone.now() - timezone.timedelta(days=30):
-            # TODO: add exception if there is no such subscription. It was removed for example.
-            return Subscription.objects.filter(pk=last_purchase.product.pk).first()
+            last_subscription_query = Subscription.objects.filter(pk=last_purchase.product.pk)
+            if last_subscription_query:
+                last_subscription = last_subscription_query.first()
+            else:
+                raise InUseSubscriptionWasRemoved("Подписка которой пользовался клиент была удалена")
+        return last_subscription
 
     @classmethod
     def user_can_subscribe(cls, user: User) -> bool:
