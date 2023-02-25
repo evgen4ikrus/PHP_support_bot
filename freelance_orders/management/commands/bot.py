@@ -40,7 +40,6 @@ def handle_users_reply(update: Update, context: CallbackContext):
         user_state = 'START'
     else:
         user_state = db.get(f'telegram_{chat_id}').decode('utf-8')
-
     states_functions = {
         'START': start,
         'MENU': handle_general_menu,
@@ -49,8 +48,10 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'ORDER_SEARCH': handle_order_search,
         'FREELANCER_ORDER_DESCRIPTION': handle_freelancer_order_description,
         'FREELANCER_ORDERS': handle_freelancer_orders,
-        'MENU_FREELANCER_ORDERS': handle_menu_freelancer_orders
+        'MENU_FREELANCER_ORDERS': handle_menu_freelancer_orders,
+        'HANDLE_CURRENT_FREELANCER_ORDERS': handle_current_freelancer_orders
     }
+
     state_handler = states_functions[user_state]
     next_state = state_handler(update, context)
     db.set(f'telegram_{chat_id}', next_state)
@@ -61,14 +62,45 @@ def handle_customer_menu(update: Update, context: CallbackContext):
     pass
 
 
-def handle_freelancer_orders(update: Update, context: CallbackContext):
+def handle_current_freelancer_orders(update: Update, context: CallbackContext):
     query = update.callback_query
     command, order_id = query.data.split(';')
+    order = Job.objects.get(id=order_id)
+    if command == 'Написать заказчику':
+        # TODO: сделать чат с заказчиком
+        pass
+    elif command == 'Заказ выполнен':
+        order.status = 'DONE'
+        order.save()
+        context.bot.send_message(text=f'Вы подтвердили выполнение заказа: {order.title}', chat_id=query.message.chat_id)
+    keyboard = get_menu_freelancer_orders_keyboard()
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    message = 'Ваши заказы:'
+    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+    return 'MENU_FREELANCER_ORDERS'
+
+
+def handle_freelancer_orders(update: Update, context: CallbackContext):
+    query = update.callback_query
+    command, payload = query.data.split(';')
     if command == 'Назад':
         keyboard = get_menu_freelancer_orders_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text='Ваши заказы:', reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'MENU_FREELANCER_ORDERS'
+    status, order_id = payload.split(':')
+    order = Job.objects.get(id=order_id)
+    message = f'{order.title}\n\n{order.description}'
+    keyboard = [
+        [InlineKeyboardButton('Написать заказчику', callback_data=f'Написать заказчику;{order.id}')],
+    ]
+    if status == 'IN_PROGRESS':
+        keyboard.append(
+            [InlineKeyboardButton('Подтвердить выполнение заказа', callback_data=f'Заказ выполнен;{order.id}')])
+    keyboard.append([InlineKeyboardButton('Назад', callback_data=f'Назад;{order.id}')])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+    return 'HANDLE_CURRENT_FREELANCER_ORDERS'
 
 
 def handle_menu_freelancer_orders(update: Update, context: CallbackContext):
@@ -80,14 +112,16 @@ def handle_menu_freelancer_orders(update: Update, context: CallbackContext):
         return 'FREELANCER_MENU'
     freelancer = User.objects.get(tg_chat_id=query.message.chat_id)
     if query.data == 'Текущие заказы':
-        orders = freelancer.jobs.filter(status='IN_PROGRESS')
+        status = 'IN_PROGRESS'
+        orders = freelancer.jobs.filter(status=status)
         message = 'Текущие заказы:'
-    elif query.data == 'Выполненные заказы':
-        orders = freelancer.jobs.filter(status='DONE')
+    else:
+        status = 'DONE'
+        orders = freelancer.jobs.filter(status=status)
         message = 'Выполненные заказы:'
     if not orders:
         message = 'Нет заказов'
-    keyboard = get_freelancer_current_orders_keyboard(orders)
+    keyboard = get_freelancer_current_orders_keyboard(orders, status)
     reply_markup = InlineKeyboardMarkup(keyboard)
     context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
     return 'FREELANCER_ORDERS'
@@ -110,7 +144,7 @@ def handle_freelancer_order_description(update: Update, context: CallbackContext
     elif command == 'Назад':
         freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
         page = freelancer.get_job_list()
-        keyboard = get_freelancer_orders_keyboard(page)
+        keyboard = get_freelancer_orders_keyboard(freelancer)
         reply_markup = InlineKeyboardMarkup(keyboard)
         message = 'Выберите заказ:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
@@ -119,14 +153,15 @@ def handle_freelancer_order_description(update: Update, context: CallbackContext
 
 def handle_order_search(update: Update, context: CallbackContext):
     query = update.callback_query
-    command, order_id = query.data.split(';')
+    command, payload = query.data.split(';')
     if command == 'Вернуться в меню':
         keyboard = get_freelancer_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
-        message = 'Здесь будет описание заказа:'
+        message = 'Меню:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'FREELANCER_MENU'
-    if command == 'Заказ':
+    elif command == 'Заказ':
+        order_id = payload
         order = Job.objects.get(id=order_id)
         keyboard = [
             [InlineKeyboardButton('Взять в работу', callback_data=f'Взять в работу;{order.id}')],
@@ -136,14 +171,22 @@ def handle_order_search(update: Update, context: CallbackContext):
         message = f'{order.title}\n\n{order.description}'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'FREELANCER_ORDER_DESCRIPTION'
+    elif command == 'Показать ещё':
+        # TODO: доделать пагинацию
+        freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
+        page = payload
+        keyboard = get_freelancer_orders_keyboard(freelancer)
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message = 'Выберите заказ:'
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+        return 'ORDER_SEARCH'
 
 
 def handle_freelancer_menu(update: Update, context: CallbackContext):
     query = update.callback_query
     if query.data == 'Найти заказ':
         freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
-        page = freelancer.get_job_list()
-        keyboard = get_freelancer_orders_keyboard(page)
+        keyboard = get_freelancer_orders_keyboard(freelancer)
         reply_markup = InlineKeyboardMarkup(keyboard)
         message = 'Выберите заказ:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
