@@ -21,7 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # константы 0, 1, 3
-MENU, CL_ORDERS, FR_ORDERS, END_ORDER = range(4)
+MENU, CL_ORDERS, FR_ORDERS, END_ORDER, GET_ORDER = range(5)
 
 
 class Command(BaseCommand):
@@ -76,7 +76,17 @@ class Command(BaseCommand):
         return FR_ORDERS
 
     def client_orders(self, update: Update, context: CallbackContext):
-        reply_keyboard = [[1, 2], ['Меню клиента']]
+        client = Client.objects.get(tg_chat_id=update.message.chat_id)
+        page = client.get_my_orders()
+        reply_keyboard = [
+            [order.id for order in page],
+            ['Меню клиента']
+            ]
+        if page.has_next:
+            reply_keyboard = [
+                [order.id for order in page],
+                ['Следующие'], ['Меню клиента']
+            ]
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
         )
@@ -86,6 +96,27 @@ class Command(BaseCommand):
             message,
             reply_markup=reply_markup
         )
+
+        return GET_ORDER
+
+    def get_order(self, update: Update, context: CallbackContext) -> END_ORDER:
+        context.user_data[GET_ORDER] = update.message.text
+        message = f'''\
+            Ваша заявка: {context.user_data[GET_ORDER]}
+
+        '''
+        message = dedent(message)
+
+        reply_keyboard = [['Меню клиента']]
+        reply_markup = ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+        )
+        update.message.reply_text(
+            message,
+            reply_markup=reply_markup
+        )
+
+        return CL_ORDERS
 
     def make_order(self, update: Update, context: CallbackContext) -> END_ORDER:
         message = '''\
@@ -111,11 +142,12 @@ class Command(BaseCommand):
         context.user_data[END_ORDER] = update.message.text
         reply_keyboard = [['Меню клиента']]
         title = f'Заявка {update.message.chat_id}'
-        # Job.objects.get_or_create(
-        #     client=update.message.chat_id,
-        #     title=title,
-        #     description=context.user_data[END_ORDER]
-        # )
+        client = Client.objects.get(tg_chat_id=update.message.chat_id)
+        Job.objects.get_or_create(
+            client=client,
+            title=title,
+            description=context.user_data[END_ORDER]
+        )
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
         )
@@ -197,9 +229,12 @@ class Command(BaseCommand):
                 ],
                 END_ORDER: [
                     MessageHandler(Filters.all, self.end_order)
+                ],
+                GET_ORDER: [
+                    MessageHandler(Filters.all, self.get_order)
                 ]
             },
-            fallbacks=[CommandHandler('cancel', self.cancel)]
+            fallbacks=[CommandHandler('start', self.start)]
         )
 
         dispatcher.add_handler(conv_handler)
