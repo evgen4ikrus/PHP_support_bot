@@ -111,11 +111,11 @@ class Command(BaseCommand):
         context.user_data[END_ORDER] = update.message.text
         reply_keyboard = [['Меню клиента']]
         title = f'Заявка {update.message.chat_id}'
-        Job.objects.get_or_create(
-            client=update.message.chat_id,
-            title=title,
-            description=context.user_data[END_ORDER]
-        )
+        # Job.objects.get_or_create(
+        #     client=update.message.chat_id,
+        #     title=title,
+        #     description=context.user_data[END_ORDER]
+        # )
         reply_markup = ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, resize_keyboard=True
         )
