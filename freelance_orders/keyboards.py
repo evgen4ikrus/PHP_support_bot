@@ -5,7 +5,7 @@ def get_freelancer_menu_keyboard():
     keyboard = [
         [
             InlineKeyboardButton('Найти заказ', callback_data='Найти заказ'),
-            InlineKeyboardButton('Мои выполняемые заказы', callback_data='Выполняемые заказы')
+            InlineKeyboardButton('Мои заказы', callback_data='Мои заказы')
         ],
     ]
     return keyboard
@@ -26,4 +26,21 @@ def get_start_keyboard():
             InlineKeyboardButton('Я фрилансер', callback_data='Фрилансер')
         ],
     ]
+    return keyboard
+
+
+def get_menu_freelancer_orders_keyboard():
+    keyboard = [
+        [
+            InlineKeyboardButton('Текущие заказы', callback_data='Текущие заказы'),
+            InlineKeyboardButton('Выполненные заказы', callback_data='Выполненные заказы')
+        ],
+        [InlineKeyboardButton('Назад', callback_data='Назад'), ]
+    ]
+    return  keyboard
+
+
+def get_freelancer_current_orders_keyboard(orders):
+    keyboard = [[InlineKeyboardButton(order.title, callback_data=f'Заказ;{order.id}')] for order in orders]
+    keyboard.append([InlineKeyboardButton('Назад', callback_data='Назад;')])
     return keyboard

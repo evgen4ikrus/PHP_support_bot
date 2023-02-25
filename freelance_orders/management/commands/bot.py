@@ -9,8 +9,9 @@ from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater, CallbackContext)
 
 from auth2.models import Freelancer, User
+from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_freelancer_orders_keyboard, get_start_keyboard, \
+    get_freelancer_current_orders_keyboard, get_menu_freelancer_orders_keyboard
 from jobs.models import Job
-from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_freelancer_orders_keyboard, get_start_keyboard
 
 _database = None
 
@@ -45,9 +46,10 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'MENU': handle_general_menu,
         'CUSTOMER_MENU': handle_customer_menu,
         'FREELANCER_MENU': handle_freelancer_menu,
-        'FREELANCER_ORDERS': handle_freelancer_orders,
+        'ORDER_SEARCH': handle_order_search,
         'FREELANCER_ORDER_DESCRIPTION': handle_freelancer_order_description,
-        'CURRENT_FREELANCER_ORDERS': handle_current_freelancer_orders,
+        'FREELANCER_ORDERS': handle_freelancer_orders,
+        'MENU_FREELANCER_ORDERS': handle_menu_freelancer_orders
     }
     state_handler = states_functions[user_state]
     next_state = state_handler(update, context)
@@ -59,13 +61,36 @@ def handle_customer_menu(update: Update, context: CallbackContext):
     pass
 
 
-def handle_current_freelancer_orders(update: Update, context: CallbackContext):
+def handle_freelancer_orders(update: Update, context: CallbackContext):
+    query = update.callback_query
+    command, order_id = query.data.split(';')
+    if command == 'Назад':
+        keyboard = get_menu_freelancer_orders_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.bot.send_message(text='Ваши заказы:', reply_markup=reply_markup, chat_id=query.message.chat_id)
+        return 'MENU_FREELANCER_ORDERS'
+
+
+def handle_menu_freelancer_orders(update: Update, context: CallbackContext):
     query = update.callback_query
     if query.data == 'Назад':
         keyboard = get_freelancer_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'FREELANCER_MENU'
+    freelancer = User.objects.get(tg_chat_id=query.message.chat_id)
+    if query.data == 'Текущие заказы':
+        orders = freelancer.jobs.filter(status='IN_PROGRESS')
+        message = 'Текущие заказы:'
+    elif query.data == 'Выполненные заказы':
+        orders = freelancer.jobs.filter(status='DONE')
+        message = 'Выполненные заказы:'
+    if not orders:
+        message = 'Нет заказов'
+    keyboard = get_freelancer_current_orders_keyboard(orders)
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+    return 'FREELANCER_ORDERS'
 
 
 def handle_freelancer_order_description(update: Update, context: CallbackContext):
@@ -82,17 +107,17 @@ def handle_freelancer_order_description(update: Update, context: CallbackContext
         context.bot.send_message(text=f'Вы взяли в работу заказ: {order.title}', chat_id=query.message.chat_id)
         context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'FREELANCER_MENU'
-    if command == 'Назад':
+    elif command == 'Назад':
         freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
         page = freelancer.get_job_list()
         keyboard = get_freelancer_orders_keyboard(page)
         reply_markup = InlineKeyboardMarkup(keyboard)
         message = 'Выберите заказ:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
-        return 'FREELANCER_ORDERS'
+        return 'ORDER_SEARCH'
 
 
-def handle_freelancer_orders(update: Update, context: CallbackContext):
+def handle_order_search(update: Update, context: CallbackContext):
     query = update.callback_query
     command, order_id = query.data.split(';')
     if command == 'Вернуться в меню':
@@ -122,15 +147,13 @@ def handle_freelancer_menu(update: Update, context: CallbackContext):
         reply_markup = InlineKeyboardMarkup(keyboard)
         message = 'Выберите заказ:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
-        return 'FREELANCER_ORDERS'
-    if query.data == 'Выполняемые заказы':
-        keyboard = [
-            [InlineKeyboardButton('Назад', callback_data='Назад')],
-        ]
+        return 'ORDER_SEARCH'
+    if query.data == 'Мои заказы':
+        keyboard = get_menu_freelancer_orders_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
-        message = 'Здесь будут выполняемые заказы:'
+        message = 'Ваши заказы:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
-        return 'CURRENT_FREELANCER_ORDERS'
+        return 'MENU_FREELANCER_ORDERS'
 
 
 # я буду определять пользователь кликнул на Заказчик или Фрилансер
