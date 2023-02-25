@@ -25,11 +25,10 @@ class User(AbstractUser):
     base_type = Types.STAFF
 
 
-class NonStaffUsers(User):
+class NonStaffUser(User):
     """The only difference is redefined saving process for non-staff users."""
 
     def save_user_with_initial_data(self, *args, **kwargs):
-        """Create a user with initial data"""
         self.type = self.base_type
         self.is_active = False
         self.save()
@@ -42,7 +41,7 @@ class NonStaffUsers(User):
 
     def save(self, *args, **kwargs):
         """Redefine the save method
-        Creation: save a telegram chat id as a username; define a user type; create a user profile;
+        Creation: make tg_chat_id and username equal; define a user type; create a user profile;
         Modifying: changing a telegram chat id changes a username field
         """
         if not self.pk:
@@ -65,9 +64,6 @@ class ClientProfile(models.Model):
         on_delete=models.SET_NULL,
         verbose_name="Клиент"
     )
-    orders_left = models.PositiveSmallIntegerField(default=0, verbose_name="Заказы остаток")
-
-    # TODO: add a plan field
 
     class Meta:
         verbose_name = "Профиль клиента"
@@ -84,9 +80,14 @@ class FreelancerProfile(models.Model):
         on_delete=models.SET_NULL,
         verbose_name="Фрилансер"
     )
-    orders_done = models.PositiveSmallIntegerField(default=0, verbose_name="Заказы выполненные")
-
-    # TODO: add a payrate field
+    orders_done = models.PositiveSmallIntegerField(default=0, verbose_name="Количество выполненнх заказов")
+    payrate = models.ForeignKey(
+        "payrates.Payrate",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name="Ставка оклада"
+    )
 
     class Meta:
         verbose_name = "Профиль фрилансера"
@@ -124,7 +125,7 @@ class Staff(User):
         verbose_name_plural = "Сотрудники"
 
 
-class Client(NonStaffUsers):
+class Client(NonStaffUser):
     base_type = User.Types.CLIENT
     objects = ClientManager()
 
@@ -157,7 +158,7 @@ class Client(NonStaffUsers):
         return paginator.get_page(page_number)
 
 
-class Freelancer(NonStaffUsers):
+class Freelancer(NonStaffUser):
     base_type = User.Types.FREELANCER
     objects = FreelancerManager()
 
