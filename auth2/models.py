@@ -1,8 +1,9 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.paginator import Paginator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.core.paginator import Paginator
+
 from jobs.models import Job
 
 
@@ -45,14 +46,14 @@ class NonStaffUsers(User):
         """
         if not self.pk:
             if self.username:
-                self.tg_chat_id = self.username
+                self.tg_chat_id = str(self.username)
             elif self.tg_chat_id:
-                self.username = self.tg_chat_id
+                self.username = str(self.tg_chat_id)
             super().save(*args, **kwargs)
             self.save_user_with_initial_data(self, *args, **kwargs)
             self.create_profile()
         else:
-            self.username = self.tg_chat_id
+            self.username = str(self.tg_chat_id)
             return super().save(*args, **kwargs)
 
 
@@ -135,6 +136,19 @@ class Client(NonStaffUsers):
     def profile(self):
         return self.clientprofile
 
+    def create_order(self, title: str, description: str) -> Job:
+        if True:  # TODO: Check if a Client has ability to make an order
+            return Job.objects.create(
+                client=self,
+                title=title,
+                description=description,
+            )
+
+    def get_my_orders(self, page_number: int = 1) -> Paginator:
+        jobs = Job.objects.filter(client=self)
+        paginator = Paginator(jobs, 5)
+        return paginator.get_page(page_number)
+
 
 class Freelancer(NonStaffUsers):
     base_type = User.Types.FREELANCER
@@ -149,7 +163,8 @@ class Freelancer(NonStaffUsers):
     def profile(self):
         return self.freelancerprofile
 
-    def get_job_list_paginator(self, page_number: int = 1):
+    @staticmethod
+    def get_job_list(page_number: int = 1) -> Paginator:
         jobs = Job.objects.filter(status=Job.Statuses.CREATED)
         paginator = Paginator(jobs, 5)
         return paginator.get_page(page_number)
