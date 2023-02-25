@@ -21,7 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # константы 0, 1, 3
-MENU, CL_ORDERS, FR_ORDERS, END_ORDER, GET_ORDER = range(5)
+MENU, CL_ORDERS, FR_ORDERS, END_ORDER = range(4)
 
 
 class Command(BaseCommand):
@@ -97,13 +97,16 @@ class Command(BaseCommand):
             reply_markup=reply_markup
         )
 
-        return GET_ORDER
+        return CL_ORDERS
 
-    def get_order(self, update: Update, context: CallbackContext) -> END_ORDER:
-        context.user_data[GET_ORDER] = update.message.text
+    def get_order(self, update: Update, context: CallbackContext) -> CL_ORDERS:
+        context.user_data[CL_ORDERS] = update.message.text
+        order = Job.objects.get(id=context.user_data[CL_ORDERS])
         message = f'''\
-            Ваша заявка: {context.user_data[GET_ORDER]}
-
+            ID заявки: {context.user_data[CL_ORDERS]}
+            Статус заявки: {order.status}
+            Описание заявки: {order.description}
+            Ваш чат ID: {order.client}
         '''
         message = dedent(message)
 
@@ -212,29 +215,28 @@ class Command(BaseCommand):
             states={
                 # ловит ввод от юзера, и согласно его вводу вызывает функцию в зависимости от выбора
                 MENU: [
-                    RegexHandler('^(Клиент)$', self.client),
-                    RegexHandler('^(Фрилансер)$', self.freelancer)
+                    MessageHandler(Filters.regex(r'Клиент'), self.client),
+                    MessageHandler(Filters.regex(r'Фрилансер'), self.freelancer)
                 ],
                 # дальше от выбора юзера вызывается функция которая так же вызывает константу
                 # либо для клиета/фрилансера по вводу которых отлавливается какую функцию вызвать
                 CL_ORDERS: [
-                    RegexHandler('^(Мои заявки)$', self.client_orders),
-                    RegexHandler('^(Оставить заявку)$', self.make_order),
-                    RegexHandler('^(Меню клиента)$', self.client)
+                    MessageHandler(Filters.regex(r'Мои заявки'), self.client_orders),
+                    MessageHandler(Filters.regex(r'Оставить заявку'), self.make_order),
+                    MessageHandler(Filters.regex(r'Меню клиента'), self.client),
+                    MessageHandler(Filters.regex(r'Следующие'), self.client_orders),
+                    MessageHandler(Filters.regex(r'\d{2}'), self.get_order),
                 ],
                 FR_ORDERS: [
-                    RegexHandler('^(Мои заказы)$', self.freelancer_orders),
-                    RegexHandler('^(Взять заказ)$', self.take_order),
-                    RegexHandler('^(Меню фрилансера)$', self.freelancer)
+                    MessageHandler(Filters.regex(r'Мои заказы'), self.freelancer_orders),
+                    MessageHandler(Filters.regex(r'Взять заказ'), self.take_order),
+                    MessageHandler(Filters.regex(r'Меню фрилансера'), self.freelancer),
                 ],
                 END_ORDER: [
                     MessageHandler(Filters.all, self.end_order)
-                ],
-                GET_ORDER: [
-                    MessageHandler(Filters.all, self.get_order)
                 ]
             },
-            fallbacks=[CommandHandler('start', self.start)]
+            fallbacks=[CommandHandler('cancel', self.cancel)]
         )
 
         dispatcher.add_handler(conv_handler)
