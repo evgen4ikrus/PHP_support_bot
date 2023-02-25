@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.paginator import Paginator
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from jobs.models import Job
@@ -136,13 +137,19 @@ class Client(NonStaffUsers):
     def profile(self):
         return self.clientprofile
 
-    def create_order(self, title: str, description: str) -> Job:
-        if True:  # TODO: Check if a Client has ability to make an order
-            return Job.objects.create(
-                client=self,
-                title=title,
-                description=description,
-            )
+    def orders_left(self) -> int:
+        from products.models import Subscription
+        result = 0
+        subscription = Subscription.user_has_active_subscription(self)
+        if subscription:
+            start_date = subscription.created
+            end_date = start_date + timezone.timedelta(days=30)
+            orders_created = Job.objects.filter(client=self, created__range=(start_date, end_date)).count()
+            result = subscription.orders_amount - orders_created
+        return result
+
+    def can_create_order(self) -> bool:
+        return self.orders_left() > 0 and self.is_active
 
     def get_my_orders(self, page_number: int = 1) -> Paginator:
         jobs = Job.objects.filter(client=self)
