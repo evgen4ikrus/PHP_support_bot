@@ -59,7 +59,6 @@ class Job(TimeStampedModel):
             raise DeadlineIsExpired("Вы не можете назначить дату исполнения в прошлом")
         self._deadline = value
 
-    @transaction.atomic()
     @transition(field=status, source=Statuses.CREATED, target=Statuses.IN_PROGRESS)
     def take(self, freelancer: "auth2.models.Freelancer", deadline: datetime.datetime) -> Optional[Job]:
         self.deadline = deadline

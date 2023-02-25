@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm
 from django.utils.translation import gettext_lazy as _
 
-from auth2.forms import Auth2UserCreationForm
+from auth2.forms import Auth2UserCreationForm, FreelancerUserChangeForm
 from auth2.models import Freelancer, Client, ClientProfile, FreelancerProfile, Staff
 
 
@@ -66,7 +66,6 @@ class StaffUserAdmin(UserAdmin):
 class ClientInline(admin.StackedInline):
     model = ClientProfile
     can_delete = False
-    readonly_fields = ("orders_left",)
     verbose_name_plural = "Клиенты"
 
 
@@ -90,6 +89,7 @@ class FreelancerInline(admin.StackedInline):
 
 
 class FreelancerUserAdmin(UserAdmin):
+    form = FreelancerUserChangeForm
     inlines = (FreelancerInline,)
     list_display = (
         "tg_chat_id",
