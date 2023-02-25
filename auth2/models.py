@@ -25,7 +25,7 @@ class User(AbstractUser):
     base_type = Types.STAFF
 
 
-class NonStaffUsers(User):
+class NonStaffUser(User):
     """The only difference is redefined saving process for non-staff users."""
 
     def save_user_with_initial_data(self, *args, **kwargs):
@@ -124,7 +124,7 @@ class Staff(User):
         verbose_name_plural = "Сотрудники"
 
 
-class Client(NonStaffUsers):
+class Client(NonStaffUser):
     base_type = User.Types.CLIENT
     objects = ClientManager()
 
@@ -157,7 +157,7 @@ class Client(NonStaffUsers):
         return paginator.get_page(page_number)
 
 
-class Freelancer(NonStaffUsers):
+class Freelancer(NonStaffUser):
     base_type = User.Types.FREELANCER
     objects = FreelancerManager()
 
