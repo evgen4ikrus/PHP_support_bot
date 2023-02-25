@@ -11,11 +11,9 @@ def get_freelancer_menu_keyboard():
     return keyboard
 
 
-def get_freelancer_orders_keyboard():
-    keyboard = [
-        [InlineKeyboardButton('Заказ 1', callback_data='Заказ')],
-        [InlineKeyboardButton('Заказ 2', callback_data='Заказ')],
-        [InlineKeyboardButton('Показать ещё', callback_data='Показать ещё')],
-        [InlineKeyboardButton('Вернуться в меню', callback_data='Вернуться в меню')],
-    ]
+def get_freelancer_orders_keyboard(page):
+    keyboard = [[InlineKeyboardButton(order.title, callback_data=order.id)] for order in page.object_list]
+    if page.has_next():
+        keyboard.append([InlineKeyboardButton('Показать ещё', callback_data='Показать ещё')])
+    keyboard.append([InlineKeyboardButton('Меню фрилансера', callback_data='Меню фрилансера')])
     return keyboard

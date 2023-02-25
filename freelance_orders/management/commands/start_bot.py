@@ -9,7 +9,7 @@ from telegram.ext import CallbackContext, RegexHandler,  ConversationHandler
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from auth2.models import Client
+from auth2.models import Client, Freelancer
 from jobs.models import Job
 
 
@@ -61,19 +61,23 @@ class Command(BaseCommand):
         return CL_ORDERS
 
     def freelancer(self, update: Update, context: CallbackContext) -> FR_ORDERS:
-        reply_keyboard = [['Мои заказы', 'Взять заказ']]
         user = update.effective_user.first_name
-        reply_markup = ReplyKeyboardMarkup(
-            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
-        )
-        message = fr'Ты на странице подрядчика, {user}'
-
+        freelancer, _ = Freelancer.objects.get_or_create(tg_chat_id=update.message.chat_id)
+        if freelancer.is_active:
+            reply_keyboard = [['Мои заказы', 'Взять заказ']]
+            reply_markup = ReplyKeyboardMarkup(
+                reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+            )
+            message = fr'Ты на странице подрядчика, {user}'
+            update.message.reply_text(
+                message,
+                reply_markup=reply_markup
+            )
+            return FR_ORDERS
+        message = fr'{user}, в ближайшие 10 минут в Вами свяжется наш менеджер'
         update.message.reply_text(
             message,
-            reply_markup=reply_markup
         )
-
-        return FR_ORDERS
 
     def client_orders(self, update: Update, context: CallbackContext):
         client = Client.objects.get(tg_chat_id=update.message.chat_id)
