@@ -46,7 +46,7 @@ def handle_freelancer_orders(update: Update, context: CallbackContext):
     keyboard.append([InlineKeyboardButton('Назад', callback_data=f'Назад;{order.id}')])
     reply_markup = InlineKeyboardMarkup(keyboard)
     context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
-    return 'HANDLE_CURRENT_FREELANCER_ORDERS'
+    return 'CURRENT_FREELANCER_ORDER'
 
 
 def handle_menu_freelancer_orders(update: Update, context: CallbackContext):

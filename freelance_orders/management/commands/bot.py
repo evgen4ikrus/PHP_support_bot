@@ -52,7 +52,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'FREELANCER_ORDER_DESCRIPTION': handle_freelancer_order_description,
         'FREELANCER_ORDERS': handle_freelancer_orders,
         'MENU_FREELANCER_ORDERS': handle_menu_freelancer_orders,
-        'HANDLE_CURRENT_FREELANCER_ORDER': handle_current_freelancer_order,
+        'CURRENT_FREELANCER_ORDER': handle_current_freelancer_order,
         'CREATE_ORDER': handle_order_creation,
         # TODO: добавить обработчик описания
         'CUSTOMER_ORDERS_MENU': handle_customer_orders_menu,
@@ -84,7 +84,8 @@ def handle_general_menu(update: Update, context: CallbackContext):
             message = 'Меню:'
             context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
             return 'FREELANCER_MENU'
-        message = fr'{user_name}, в ближайшие 10 минут в Вами свяжется наш менеджер'
+        message = f'{user_name}, в ближайшие 10 минут в Вами свяжется наш менеджер.\n' \
+                  f'После разговора с менеджером нажмите `/start`.'
         context.bot.send_message(text=message, chat_id=query.message.chat_id)
         return 'START'
 
