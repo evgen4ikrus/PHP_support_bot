@@ -5,7 +5,6 @@ from typing import Optional
 
 from django.conf import settings
 from django.db import models
-from django.db import transaction
 from django.utils import timezone
 from django_extensions.db.models import TimeStampedModel
 from django_fsm import FSMField, transition
@@ -45,7 +44,7 @@ class Job(TimeStampedModel):
         verbose_name_plural = "Работы"
 
     def __str__(self):
-        return f"{self.pk}: [{self.status}] {self.client} - {self.freelancer}"
+        return f"{self.title} [{self.status}]: {self.client} - {self.freelancer}"
 
     @property
     def deadline(self):
