@@ -54,7 +54,7 @@ class Subscription(Product):
     def user_can_subscribe(cls, client: Client) -> bool:
         result = False
         user_has_money = True
-        if not client.can_create_order and user_has_money:
+        if not client.can_create_order() and user_has_money:
             result = True
         return result
 
