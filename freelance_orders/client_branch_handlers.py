@@ -110,7 +110,7 @@ def handle_customer_orders_menu(update: Update, context: CallbackContext):
         orders = client.orders.filter(status=status)
         message = 'Выполненные заказы:'
     if not orders:
-        message = 'Нет заявок'
+        message = 'Нет заказов'
     keyboard = get_freelancer_current_orders_keyboard(orders, status)
     reply_markup = InlineKeyboardMarkup(keyboard)
     context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
@@ -122,7 +122,7 @@ def handle_customer_menu(update: Update, context: CallbackContext):
     client = Client.objects.get(tg_chat_id=query.message.chat_id)
     if query.data == 'Оставить заявку':
         if client.orders_left():
-            message = 'Примеры заявок:\n' \
+            message = 'Примеры названий заказов:\n' \
                       'Нужно добавить в интернет-магазин фильтр товаров по цвету\n' \
                       'Нужно выгрузить товары с сайта в Excel-таблице\nНужно загрузить 450 SKU на сайт из Excel таблицы\n\n' \
                       'Введите название вашего заказа в поле для ввода:'
