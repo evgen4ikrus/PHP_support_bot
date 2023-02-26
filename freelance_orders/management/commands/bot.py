@@ -14,7 +14,7 @@ from freelance_orders.client_branch_handlers import handle_customer_menu, handle
     handle_description_adding, handle_sending_messages_to_freelancer
 from freelance_orders.freelancer_branch_handlers import handle_freelancer_menu, handle_order_search, \
     handle_freelancer_order_description, handle_freelancer_orders, handle_menu_freelancer_orders, \
-    handle_current_freelancer_order
+    handle_current_freelancer_order, handle_sending_messages_to_customer
 from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_start_keyboard, get_client_menu_keyboard
 
 _database = None
@@ -54,6 +54,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'FREELANCER_ORDERS': handle_freelancer_orders,
         'MENU_FREELANCER_ORDERS': handle_menu_freelancer_orders,
         'CURRENT_FREELANCER_ORDER': handle_current_freelancer_order,
+        'SENDING_MESSAGES_TO_CUSTOMER': handle_sending_messages_to_customer,
         'CREATE_ORDER': handle_order_creation,
         'DESCRIPTION_ADDING': handle_description_adding,
         'CUSTOMER_ORDERS_MENU': handle_customer_orders_menu,
@@ -61,7 +62,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'CURRENT_CUSTOMER_ORDER': handle_current_customer_order,
         'SUBSCRIPTIONS': handle_subscriptions,
         'HANDLE_USERS_REPLY': handle_users_reply,
-        'SENDING_MESSAGES_TO_FREELANCER':handle_sending_messages_to_freelancer,
+        'SENDING_MESSAGES_TO_FREELANCER': handle_sending_messages_to_freelancer,
     }
     state_handler = states_functions[user_state]
     next_state = state_handler(update, context)
