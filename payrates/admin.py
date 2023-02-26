@@ -5,4 +5,7 @@ from payrates.models import Payrate
 
 @admin.register(Payrate)
 class PayrateModelAdmin(admin.ModelAdmin):
-    pass
+    list_display = (
+        "title",
+        "total_amount",
+    )

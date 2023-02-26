@@ -153,7 +153,7 @@ class Client(NonStaffUser):
         return self.orders_left() > 0 and self.is_active
 
     def get_my_orders(self, page_number: int = 1) -> Paginator:
-        jobs = Job.objects.filter(client=self)
+        jobs = Job.objects.filter(client=self).order_by('id')
         paginator = Paginator(jobs, 5)
         return paginator.get_page(page_number)
 
@@ -173,6 +173,6 @@ class Freelancer(NonStaffUser):
 
     @staticmethod
     def get_job_list(page_number: int = 1) -> Paginator:
-        jobs = Job.objects.filter(status=Job.Statuses.CREATED)
+        jobs = Job.objects.filter(status=Job.Statuses.CREATED).order_by('id')
         paginator = Paginator(jobs, 5)
         return paginator.get_page(page_number)
