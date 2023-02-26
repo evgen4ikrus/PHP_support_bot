@@ -11,7 +11,7 @@ from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
 from auth2.models import Freelancer, Client
 from freelance_orders.client_branch_handlers import handle_customer_menu, handle_order_creation, \
     handle_customer_orders_menu, handle_customer_orders, handle_current_customer_order, handle_subscriptions, \
-    handle_description_adding
+    handle_description_adding, handle_sending_messages_to_freelancer
 from freelance_orders.freelancer_branch_handlers import handle_freelancer_menu, handle_order_search, \
     handle_freelancer_order_description, handle_freelancer_orders, handle_menu_freelancer_orders, \
     handle_current_freelancer_order
@@ -61,6 +61,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'CURRENT_CUSTOMER_ORDER': handle_current_customer_order,
         'SUBSCRIPTIONS': handle_subscriptions,
         'HANDLE_USERS_REPLY': handle_users_reply,
+        'SENDING_MESSAGES_TO_FREELANCER':handle_sending_messages_to_freelancer,
     }
     state_handler = states_functions[user_state]
     next_state = state_handler(update, context)
