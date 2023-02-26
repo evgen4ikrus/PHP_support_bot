@@ -8,8 +8,7 @@ from django.utils import timezone
 from django_extensions.db.models import TimeStampedModel
 from django_fsm import FSMField
 
-from auth2.models import User
-from products.exceptions import InUseSubscriptionWasRemoved
+from auth2.models import User, Client
 
 
 class Product(TimeStampedModel):
@@ -46,25 +45,22 @@ class Subscription(Product):
         return f"{self.title} - {self.price}"
 
     @classmethod
-    def user_has_active_subscription(cls, user: User) -> Optional[Subscription]:
+    def user_has_active_subscription(cls, user: User) -> Optional[Purchase]:
         last_purchase = Purchase.objects.filter(user=user).last()
-        last_subscription = None
         if last_purchase and last_purchase.created >= timezone.now() - timezone.timedelta(days=30):
-            last_subscription_query = Subscription.objects.filter(pk=last_purchase.product.pk)
-            if last_subscription_query:
-                last_subscription = last_subscription_query.first()
-            else:
-                raise InUseSubscriptionWasRemoved("Подписка которой пользовался клиент была удалена")
-        return last_subscription
+            return last_purchase
 
     @classmethod
-    def user_can_subscribe(cls, user: User) -> bool:
+    def user_can_subscribe(cls, client: Client) -> bool:
+        result = False
         user_has_money = True
-        return not cls.user_has_active_subscription(user) and user_has_money
+        if not client.can_create_order and user_has_money:
+            result = True
+        return result
 
-    def subscribe(self, user: User) -> Optional[Purchase]:
-        if self.user_can_subscribe(user):
-            return self.buy(user)
+    def subscribe(self, client: Client) -> Optional[Purchase]:
+        if self.user_can_subscribe(client):
+            return self.buy(client)
 
 
 class Purchase(TimeStampedModel):

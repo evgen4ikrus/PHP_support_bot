@@ -141,12 +141,12 @@ class Client(NonStaffUser):
     def orders_left(self) -> int:
         from products.models import Subscription
         result = 0
-        subscription = Subscription.user_has_active_subscription(self)
-        if subscription:
-            start_date = subscription.created
+        purchase = Subscription.user_has_active_subscription(self)
+        if purchase:
+            start_date = purchase.created
             end_date = start_date + timezone.timedelta(days=30)
             orders_created = Job.objects.filter(client=self, created__range=(start_date, end_date)).count()
-            result = subscription.orders_amount - orders_created
+            result = purchase.product.subscription.orders_amount - orders_created
         return result
 
     def can_create_order(self) -> bool:
