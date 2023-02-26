@@ -55,7 +55,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'MENU_FREELANCER_ORDERS': handle_menu_freelancer_orders,
         'CURRENT_FREELANCER_ORDER': handle_current_freelancer_order,
         'CREATE_ORDER': handle_order_creation,
-        'DESCRIPTION_ADDING ': handle_description_adding,
+        'DESCRIPTION_ADDING': handle_description_adding,
         'CUSTOMER_ORDERS_MENU': handle_customer_orders_menu,
         'CUSTOMER_ORDERS': handle_customer_orders,
         'CURRENT_CUSTOMER_ORDER': handle_current_customer_order,
