@@ -89,7 +89,6 @@ def handle_freelancer_order_description(update: Update, context: CallbackContext
         return 'FREELANCER_MENU'
     elif command == 'Назад':
         freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
-        page = freelancer.get_job_list()
         keyboard = get_freelancer_orders_keyboard(freelancer)
         reply_markup = InlineKeyboardMarkup(keyboard)
         message = 'Выберите заказ:'
@@ -121,7 +120,7 @@ def handle_order_search(update: Update, context: CallbackContext):
         # TODO: доделать пагинацию
         freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
         page = payload
-        keyboard = get_freelancer_orders_keyboard(freelancer)
+        keyboard = get_freelancer_orders_keyboard(freelancer, page_num=page)
         reply_markup = InlineKeyboardMarkup(keyboard)
         message = 'Выберите заказ:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)

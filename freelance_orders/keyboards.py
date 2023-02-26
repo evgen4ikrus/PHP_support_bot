@@ -12,7 +12,7 @@ def get_freelancer_menu_keyboard():
 
 
 def get_freelancer_orders_keyboard(freelancer, page_num=1):
-    page = freelancer.get_job_list()
+    page = freelancer.get_job_list(page_num)
     keyboard = [[InlineKeyboardButton(order.title, callback_data=f'Заказ;{order.id}')] for order in page.object_list]
     if page.has_next():
         next_page_num = page.next_page_number()
