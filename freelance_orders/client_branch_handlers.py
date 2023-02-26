@@ -8,14 +8,50 @@ from jobs.models import Job
 from products.models import Subscription
 
 
+def handle_sending_messages_to_freelancer(update: Update, context: CallbackContext):
+    if update.message:
+        text = update.message.text
+        if text:
+            order_id = context.user_data['order_id']
+            order = Job.objects.get(id=order_id)
+            message = f'Вам пришло сообщение от фрилансера, который выполняет заказ "{order.title}":\n\n' \
+                      f'{text}\n\n' \
+                      f'Чтобы ответить, найдите заказ в разделе "Мои заказы" и нажмите "Написать фрилансеру"\n' \
+                      f'Нажмите `/start` для выхода в меню.'
+            context.bot.send_message(text=message, chat_id=order.freelancer.tg_chat_id)
+            keyboard = [[InlineKeyboardButton('Вернуться в меню заказов', callback_data='Вернуться в меню заказов')]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            context.bot.send_message(text='Сообщение отправлено фрилансеру', reply_markup=reply_markup,
+                                     chat_id=update.message.chat_id)
+            return 'SENDING_MESSAGES_TO_FREELANCER'
+    query = update.callback_query
+    if query:
+        if query.data == 'Вернуться в меню заказов':
+            message = 'Ваши заказы'
+            keyboard = get_customer_orders_menu_keyboard()
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+            return 'CUSTOMER_ORDERS_MENU'
+
+
 def handle_description_adding(update: Update, context: CallbackContext):
-    # text = update.message.text
-    # if text:
-    #     print(text)
+    if update.message:
+        text = update.message.text
+        if text:
+            order_id = context.user_data['order_id']
+            order = Job.objects.get(id=order_id)
+            order.description = text
+            order.save()
+            chat_id = update.message.chat_id
+            context.bot.send_message(text='Описание добавлено', chat_id=chat_id)
+    query = update.callback_query
+    if query:
+        if query.data == 'Не добавлять описания':
+            chat_id = query.message.chat_id
     keyboard = get_client_menu_keyboard()
     reply_markup = InlineKeyboardMarkup(keyboard)
     message = 'Меню:'
-    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=update.message.chat_id)
+    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
     return 'CUSTOMER_MENU'
 
 
@@ -47,11 +83,13 @@ def handle_subscriptions(update: Update, context: CallbackContext):
 def handle_current_customer_order(update: Update, context: CallbackContext):
     query = update.callback_query
     command, order_id = query.data.split(';')
-    if command == 'Написать заказчику':
-        # TODO: сделать чат с заказчиком
-        pass
+    if command == 'Написать фрилансеру':
+        context.user_data['order_id'] = order_id
+        message = 'Напишите сообщение фрилансеру в поле для ввода:'
+        context.bot.send_message(text=message, chat_id=query.message.chat_id)
+        return 'SENDING_MESSAGES_TO_FREELANCER'
     elif command == 'Назад':
-        message = 'Ваши заявки'
+        message = 'Ваши заказы'
         keyboard = get_customer_orders_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
@@ -62,14 +100,17 @@ def handle_customer_orders(update: Update, context: CallbackContext):
     query = update.callback_query
     command, payload = query.data.split(';')
     if command == 'Назад':
-        message = 'Ваши заявки'
+        message = 'Ваши заказы'
         keyboard = get_customer_orders_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'CUSTOMER_ORDERS_MENU'
     _, order_id = payload.split(':')
     order = Job.objects.get(id=order_id)
-    message = f'{order.title}\n\n{order.description}'
+    description = ''
+    if order.description:
+        description = f'\n\nОписание: {order.description}'
+    message = f'{order.title}{description}\n\nСтатус заказа: {Job.Statuses[order.status].label}'
     keyboard = []
     if order.status == 'IN_PROGRESS' or order.status == 'DONE':
         keyboard.append([InlineKeyboardButton('Написать фрилансеру', callback_data=f'Написать фрилансеру;{order.id}')])
@@ -97,7 +138,7 @@ def handle_customer_orders_menu(update: Update, context: CallbackContext):
         orders = client.orders.filter(status=status)
         message = 'Выполненные заказы:'
     if not orders:
-        message = 'Нет заявок'
+        message = 'Нет заказов'
     keyboard = get_freelancer_current_orders_keyboard(orders, status)
     reply_markup = InlineKeyboardMarkup(keyboard)
     context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
@@ -109,10 +150,10 @@ def handle_customer_menu(update: Update, context: CallbackContext):
     client = Client.objects.get(tg_chat_id=query.message.chat_id)
     if query.data == 'Оставить заявку':
         if client.orders_left():
-            message = 'Примеры заявок:\n' \
+            message = 'Примеры названий заказов:\n' \
                       'Нужно добавить в интернет-магазин фильтр товаров по цвету\n' \
-                      'Нужно выгрузить товары с сайта в Excel-таблице\nНужно загрузить 450 SKU на сайт из Execel таблицы\n\n' \
-                      'Введите название вашей заявки в поле для ввода:'
+                      'Нужно выгрузить товары с сайта в Excel-таблице\nНужно загрузить 450 SKU на сайт из Excel таблицы\n\n' \
+                      'Введите название вашего заказа в поле для ввода:'
             keyboard = [
                 [InlineKeyboardButton('Отменить', callback_data='Отменить')]
             ]
@@ -129,11 +170,11 @@ def handle_customer_menu(update: Update, context: CallbackContext):
             ]
             keyboard.append([InlineKeyboardButton('Назад', callback_data='Назад;')])
             reply_markup = InlineKeyboardMarkup(keyboard)
-            message = 'Для создания заявки, необходимо купить подписку, выберите одну из них:'
+            message = 'Для создания заказа, необходимо купить подписку, выберите одну из них:'
             context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
             return 'SUBSCRIPTIONS'
-    if query.data == 'Мои заявки':
-        message = 'Ваши заявки'
+    if query.data == 'Мои заказы':
+        message = 'Ваши заказы'
         keyboard = get_customer_orders_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
@@ -148,11 +189,16 @@ def handle_order_creation(update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
         order_text = update.message.text
         client = User.objects.get(tg_chat_id=chat_id)
-        Job.objects.create(title=order_text, client=client)
-        message = 'Заказ создан. Вы можете его увидеть в разделе "Мои заявки"'
+        order = Job.objects.create(title=order_text, client=client)
+        message = 'Заказ создан. Вы можете его увидеть в разделе "Мои заказы"'
         context.bot.send_message(text=message, chat_id=chat_id)
-        message = 'А теперь добавьте описание проекта в поле для ввода:'
-        context.bot.send_message(text=message, chat_id=chat_id)
+        message = 'А теперь добавьте описание проекта в поле для ввода (необязательно):'
+        keyboard = [
+            [InlineKeyboardButton('Не добавлять описания', callback_data='Не добавлять описания')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
+        context.user_data['order_id'] = order.id
         return 'DESCRIPTION_ADDING'
     keyboard = get_client_menu_keyboard()
     reply_markup = InlineKeyboardMarkup(keyboard)
