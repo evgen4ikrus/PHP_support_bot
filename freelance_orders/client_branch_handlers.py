@@ -124,7 +124,7 @@ def handle_customer_menu(update: Update, context: CallbackContext):
         if client.orders_left():
             message = 'Примеры заявок:\n' \
                       'Нужно добавить в интернет-магазин фильтр товаров по цвету\n' \
-                      'Нужно выгрузить товары с сайта в Excel-таблице\nНужно загрузить 450 SKU на сайт из Execel таблицы\n\n' \
+                      'Нужно выгрузить товары с сайта в Excel-таблице\nНужно загрузить 450 SKU на сайт из Excel таблицы\n\n' \
                       'Введите название вашего заказа в поле для ввода:'
             keyboard = [
                 [InlineKeyboardButton('Отменить', callback_data='Отменить')]
