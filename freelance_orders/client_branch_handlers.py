@@ -5,7 +5,7 @@ from auth2.models import User, Client
 from freelance_orders.keyboards import get_client_menu_keyboard, get_customer_orders_menu_keyboard, \
     get_freelancer_current_orders_keyboard
 from jobs.models import Job
-from products.models import Subscription
+from products.models import Subscription, Purchase
 
 
 def handle_description_adding(update: Update, context: CallbackContext):
@@ -77,7 +77,7 @@ def handle_customer_orders(update: Update, context: CallbackContext):
     _, order_id = payload.split(':')
     order = Job.objects.get(id=order_id)
     # TODO: Поправить статус
-    message = f'{order.title}\n\n{order.description}\n\nСтатус заказа: {order.status}'
+    message = f'{order.title}\n\n{order.description}\n\nСтатус заказа: {Job.Statuses[order.status].label}'
     keyboard = []
     if order.status == 'IN_PROGRESS' or order.status == 'DONE':
         keyboard.append([InlineKeyboardButton('Написать фрилансеру', callback_data=f'Написать фрилансеру;{order.id}')])
