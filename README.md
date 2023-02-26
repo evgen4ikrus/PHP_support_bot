@@ -38,4 +38,3 @@ python3 manage.py runserver
 ```commandline
 python3 manage.py bot
 ```
-* Проверьте работу бота: при команде `/start` бот ответит: "Привет"
