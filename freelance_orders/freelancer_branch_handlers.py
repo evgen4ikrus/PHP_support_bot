@@ -1,11 +1,11 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import  CallbackContext
+from telegram.ext import CallbackContext
 
 from auth2.models import Freelancer
+from auth2.models import User
 from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_menu_freelancer_orders_keyboard, \
     get_freelancer_current_orders_keyboard, get_freelancer_orders_keyboard
 from jobs.models import Job
-from auth2.models import User
 
 
 def handle_current_freelancer_orders(update: Update, context: CallbackContext):

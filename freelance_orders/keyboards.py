@@ -24,7 +24,7 @@ def get_freelancer_orders_keyboard(freelancer, page_num=1):
 def get_start_keyboard():
     keyboard = [
         [
-            InlineKeyboardButton('Я заказчик', callback_data='Заказчик'),
+            InlineKeyboardButton('Хочу заказать проект', callback_data='Заказчик'),
             InlineKeyboardButton('Я фрилансер', callback_data='Фрилансер')
         ],
     ]
@@ -47,3 +47,12 @@ def get_freelancer_current_orders_keyboard(orders, status):
     keyboard.append([InlineKeyboardButton('Назад', callback_data='Назад;:')])
     return keyboard
 
+
+def get_client_menu_keyboard():
+    keyboard = [
+        [
+            InlineKeyboardButton('Оставить заявку', callback_data='Оставить заявку'),
+            InlineKeyboardButton('Мои заявки', callback_data='Мои заявки')
+        ],
+    ]
+    return keyboard
