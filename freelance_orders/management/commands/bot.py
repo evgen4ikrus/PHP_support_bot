@@ -4,16 +4,18 @@ import redis
 import telegram
 from django.core.management.base import BaseCommand
 from environs import Env
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup, Update
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater, CallbackContext)
 
-from auth2.models import Freelancer
-from freelance_orders.client_branch_handlers import handle_customer_menu
+from auth2.models import Freelancer, Client
+from freelance_orders.client_branch_handlers import handle_customer_menu, handle_order_creation, \
+    handle_customer_orders_menu, handle_customer_orders, handle_current_customer_order, handle_subscriptions, \
+    handle_description_adding
 from freelance_orders.freelancer_branch_handlers import handle_freelancer_menu, handle_order_search, \
     handle_freelancer_order_description, handle_freelancer_orders, handle_menu_freelancer_orders, \
-    handle_current_freelancer_orders
-from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_start_keyboard
+    handle_current_freelancer_order
+from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_start_keyboard, get_client_menu_keyboard
 
 _database = None
 
@@ -51,7 +53,14 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'FREELANCER_ORDER_DESCRIPTION': handle_freelancer_order_description,
         'FREELANCER_ORDERS': handle_freelancer_orders,
         'MENU_FREELANCER_ORDERS': handle_menu_freelancer_orders,
-        'HANDLE_CURRENT_FREELANCER_ORDERS': handle_current_freelancer_orders
+        'CURRENT_FREELANCER_ORDER': handle_current_freelancer_order,
+        'CREATE_ORDER': handle_order_creation,
+        'DESCRIPTION_ADDING ': handle_description_adding,
+        'CUSTOMER_ORDERS_MENU': handle_customer_orders_menu,
+        'CUSTOMER_ORDERS': handle_customer_orders,
+        'CURRENT_CUSTOMER_ORDER': handle_current_customer_order,
+        'SUBSCRIPTIONS': handle_subscriptions,
+        'HANDLE_USERS_REPLY': handle_users_reply,
     }
     state_handler = states_functions[user_state]
     next_state = state_handler(update, context)
@@ -62,14 +71,10 @@ def handle_general_menu(update: Update, context: CallbackContext):
     user_name = update.effective_user.first_name
     query = update.callback_query
     if query.data == 'Заказчик':
-        keyboard = [
-            [
-                InlineKeyboardButton('Сделать заказ', callback_data='Сделать заказ'),
-                InlineKeyboardButton('Что-то еще', callback_data='Что-то еще')
-            ],
-        ]
+        Client.objects.get_or_create(tg_chat_id=query.message.chat_id)
+        keyboard = get_client_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
-        message = 'Меню заказчика:'
+        message = 'Меню:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'CUSTOMER_MENU'
     elif query.data == 'Фрилансер':
@@ -80,7 +85,8 @@ def handle_general_menu(update: Update, context: CallbackContext):
             message = 'Меню:'
             context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
             return 'FREELANCER_MENU'
-        message = fr'{user_name}, в ближайшие 10 минут в Вами свяжется наш менеджер'
+        message = f'{user_name}, в ближайшие 10 минут в Вами свяжется наш менеджер.\n' \
+                  f'После разговора с менеджером нажмите `/start`.'
         context.bot.send_message(text=message, chat_id=query.message.chat_id)
         return 'START'
 
