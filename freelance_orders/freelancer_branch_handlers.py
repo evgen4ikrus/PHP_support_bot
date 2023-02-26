@@ -36,7 +36,10 @@ def handle_freelancer_orders(update: Update, context: CallbackContext):
         return 'MENU_FREELANCER_ORDERS'
     status, order_id = payload.split(':')
     order = Job.objects.get(id=order_id)
-    message = f'{order.title}\n\n{order.description}'
+    description = ''
+    if order.description:
+        description = f'\n\nОписание: {order.description}'
+    message = f'{order.title}{description}\n\nСтатус заказа: {Job.Statuses[order.status].label}'
     keyboard = [
         [InlineKeyboardButton('Написать заказчику', callback_data=f'Написать заказчику;{order.id}')],
     ]
@@ -113,7 +116,10 @@ def handle_order_search(update: Update, context: CallbackContext):
             [InlineKeyboardButton('Назад', callback_data='Назад;')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        message = f'{order.title}\n\n{order.description}'
+        description = ''
+        if order.description:
+            description = f'\n\nОписание: {order.description}'
+        message = f'{order.title}{description}\n\nСтатус заказа: {Job.Statuses[order.status].label}'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'FREELANCER_ORDER_DESCRIPTION'
     elif command == 'Показать ещё':
