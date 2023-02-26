@@ -56,3 +56,14 @@ def get_client_menu_keyboard():
         ],
     ]
     return keyboard
+
+
+def get_customer_orders_menu_keyboard():
+    keyboard = [
+        [
+            InlineKeyboardButton('Актуальные', callback_data='Актуальные'),
+            InlineKeyboardButton('Выполненные', callback_data='Выполненные')
+        ],
+        [InlineKeyboardButton('Назад', callback_data='Назад'), ]
+    ]
+    return  keyboard
