@@ -1,10 +1,22 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 
-from auth2.models import User
+from auth2.models import User, Client
 from freelance_orders.keyboards import get_client_menu_keyboard, get_customer_orders_menu_keyboard, \
     get_freelancer_current_orders_keyboard
 from jobs.models import Job
+from products.models import Subscription
+
+
+def handle_subscriptions(update: Update, context: CallbackContext):
+    query = update.callback_query
+    command, payload = query.data.split(';')
+    if command == 'Назад':
+        keyboard = get_client_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message = 'Меню:'
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+        return 'CUSTOMER_MENU'
 
 
 def handle_current_customer_order(update: Update, context: CallbackContext):
@@ -69,17 +81,31 @@ def handle_customer_orders_menu(update: Update, context: CallbackContext):
 
 def handle_customer_menu(update: Update, context: CallbackContext):
     query = update.callback_query
+    client = Client.objects.get(tg_chat_id=query.message.chat_id)
     if query.data == 'Оставить заявку':
-        message = 'Примеры заявок:\n' \
-                  'Нужно добавить в интернет-магазин фильтр товаров по цвету\n' \
-                  'Нужно выгрузить товары с сайта в Excel-таблице\nНужно загрузить 450 SKU на сайт из Execel таблицы\n\n' \
-                  'Введите название вашей заявки в поле для ввода:'
-        keyboard = [
-            [InlineKeyboardButton('Отменить', callback_data='Отменить')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
-        return 'CREATE_ORDER'
+        if client.orders_left():
+            message = 'Примеры заявок:\n' \
+                      'Нужно добавить в интернет-магазин фильтр товаров по цвету\n' \
+                      'Нужно выгрузить товары с сайта в Excel-таблице\nНужно загрузить 450 SKU на сайт из Execel таблицы\n\n' \
+                      'Введите название вашей заявки в поле для ввода:'
+            keyboard = [
+                [InlineKeyboardButton('Отменить', callback_data='Отменить')]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+            return 'CREATE_ORDER'
+        else:
+            subscriptions = Subscription.objects.all()
+            keyboard = [
+                [InlineKeyboardButton(f'{subscription.title} за {int(subscription.price)}р',
+                                      callback_data=f'Подписка;{subscription.price}:{subscription.orders_amount}')] for
+                subscription in subscriptions
+            ]
+            keyboard.append([InlineKeyboardButton('Назад', callback_data='Назад;')])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            message = 'Для создания заявки, необходимо купить подписку, выберите одну из них:'
+            context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+            return 'SUBSCRIPTIONS'
     if query.data == 'Мои заявки':
         message = 'Ваши заявки'
         keyboard = get_customer_orders_menu_keyboard()
