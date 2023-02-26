@@ -2,18 +2,69 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 
 from auth2.models import User
-from freelance_orders.keyboards import get_client_menu_keyboard, get_customer_orders_menu_keyboard
+from freelance_orders.keyboards import get_client_menu_keyboard, get_customer_orders_menu_keyboard, \
+    get_freelancer_current_orders_keyboard
 from jobs.models import Job
+
+
+def handle_current_customer_order(update: Update, context: CallbackContext):
+    query = update.callback_query
+    command, order_id = query.data.split(';')
+    if command == 'Написать заказчику':
+        # TODO: сделать чат с заказчиком
+        pass
+    elif command == 'Назад':
+        message = 'Ваши заявки'
+        keyboard = get_customer_orders_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+        return 'CUSTOMER_ORDERS_MENU'
+
+
+def handle_customer_orders(update: Update, context: CallbackContext):
+    query = update.callback_query
+    command, payload = query.data.split(';')
+    if command == 'Назад':
+        message = 'Ваши заявки'
+        keyboard = get_customer_orders_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+        return 'CUSTOMER_ORDERS_MENU'
+    _, order_id = payload.split(':')
+    order = Job.objects.get(id=order_id)
+    message = f'{order.title}\n\n{order.description}'
+    keyboard = []
+    if order.status == 'IN_PROGRESS' or order.status == 'DONE':
+        keyboard.append([InlineKeyboardButton('Написать фрилансеру', callback_data=f'Написать фрилансеру;{order.id}')])
+    keyboard.append([InlineKeyboardButton('Назад', callback_data=f'Назад;{order.id}')])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+    return 'CURRENT_CUSTOMER_ORDER'
 
 
 def handle_customer_orders_menu(update: Update, context: CallbackContext):
     query = update.callback_query
+    client = User.objects.get(tg_chat_id=query.message.chat_id)
     if query.data == 'Назад':
         keyboard = get_client_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         message = 'Меню:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'CUSTOMER_MENU'
+    if query.data == 'Актуальные':
+        status = 'IN_PROGRESS'
+        orders = client.orders.exclude(status='DONE')
+        message = 'Актуальные заказы:'
+    else:
+        status = 'DONE'
+        orders = client.orders.filter(status=status)
+        message = 'Выполненные заказы:'
+    if not orders:
+        message = 'Нет заявок'
+    keyboard = get_freelancer_current_orders_keyboard(orders, status)
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+    return 'CUSTOMER_ORDERS'
 
 
 def handle_customer_menu(update: Update, context: CallbackContext):

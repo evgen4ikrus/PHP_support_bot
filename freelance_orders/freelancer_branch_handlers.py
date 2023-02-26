@@ -8,7 +8,7 @@ from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_menu_fr
 from jobs.models import Job
 
 
-def handle_current_freelancer_orders(update: Update, context: CallbackContext):
+def handle_current_freelancer_order(update: Update, context: CallbackContext):
     query = update.callback_query
     command, order_id = query.data.split(';')
     order = Job.objects.get(id=order_id)
@@ -117,7 +117,6 @@ def handle_order_search(update: Update, context: CallbackContext):
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'FREELANCER_ORDER_DESCRIPTION'
     elif command == 'Показать ещё':
-        # TODO: доделать пагинацию
         freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
         page = payload
         keyboard = get_freelancer_orders_keyboard(freelancer, page_num=page)

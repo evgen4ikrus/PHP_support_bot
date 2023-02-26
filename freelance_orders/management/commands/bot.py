@@ -4,16 +4,16 @@ import redis
 import telegram
 from django.core.management.base import BaseCommand
 from environs import Env
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup, Update
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater, CallbackContext)
 
-from auth2.models import Freelancer, Client, User
+from auth2.models import Freelancer, Client
 from freelance_orders.client_branch_handlers import handle_customer_menu, handle_order_creation, \
-    handle_customer_orders_menu
+    handle_customer_orders_menu, handle_customer_orders, handle_current_customer_order
 from freelance_orders.freelancer_branch_handlers import handle_freelancer_menu, handle_order_search, \
     handle_freelancer_order_description, handle_freelancer_orders, handle_menu_freelancer_orders, \
-    handle_current_freelancer_orders
+    handle_current_freelancer_order
 from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_start_keyboard, get_client_menu_keyboard
 
 _database = None
@@ -52,9 +52,11 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'FREELANCER_ORDER_DESCRIPTION': handle_freelancer_order_description,
         'FREELANCER_ORDERS': handle_freelancer_orders,
         'MENU_FREELANCER_ORDERS': handle_menu_freelancer_orders,
-        'HANDLE_CURRENT_FREELANCER_ORDERS': handle_current_freelancer_orders,
+        'HANDLE_CURRENT_FREELANCER_ORDER': handle_current_freelancer_order,
         'CREATE_ORDER': handle_order_creation,
         'CUSTOMER_ORDERS_MENU': handle_customer_orders_menu,
+        'CUSTOMER_ORDERS': handle_customer_orders,
+        'CURRENT_CUSTOMER_ORDER': handle_current_customer_order,
     }
     state_handler = states_functions[user_state]
     next_state = state_handler(update, context)
