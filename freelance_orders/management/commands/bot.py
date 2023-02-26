@@ -10,7 +10,8 @@ from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
 
 from auth2.models import Freelancer, Client
 from freelance_orders.client_branch_handlers import handle_customer_menu, handle_order_creation, \
-    handle_customer_orders_menu, handle_customer_orders, handle_current_customer_order, handle_subscriptions
+    handle_customer_orders_menu, handle_customer_orders, handle_current_customer_order, handle_subscriptions, \
+    handle_description_adding
 from freelance_orders.freelancer_branch_handlers import handle_freelancer_menu, handle_order_search, \
     handle_freelancer_order_description, handle_freelancer_orders, handle_menu_freelancer_orders, \
     handle_current_freelancer_order
@@ -54,7 +55,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'MENU_FREELANCER_ORDERS': handle_menu_freelancer_orders,
         'CURRENT_FREELANCER_ORDER': handle_current_freelancer_order,
         'CREATE_ORDER': handle_order_creation,
-        # TODO: добавить обработчик описания
+        'DESCRIPTION_ADDING ': handle_description_adding,
         'CUSTOMER_ORDERS_MENU': handle_customer_orders_menu,
         'CUSTOMER_ORDERS': handle_customer_orders,
         'CURRENT_CUSTOMER_ORDER': handle_current_customer_order,

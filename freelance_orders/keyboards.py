@@ -51,7 +51,7 @@ def get_freelancer_current_orders_keyboard(orders, status):
 def get_client_menu_keyboard():
     keyboard = [
         [
-            InlineKeyboardButton('Оставить заявку', callback_data='Оставить заявку'),
+            InlineKeyboardButton('Заказать работу', callback_data='Оставить заявку'),
             InlineKeyboardButton('Мои заявки', callback_data='Мои заявки')
         ],
     ]

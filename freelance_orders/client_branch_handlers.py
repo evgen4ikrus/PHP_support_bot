@@ -8,6 +8,17 @@ from jobs.models import Job
 from products.models import Subscription
 
 
+def handle_description_adding(update: Update, context: CallbackContext):
+    # text = update.message.text
+    # if text:
+    #     print(text)
+    keyboard = get_client_menu_keyboard()
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    message = 'Меню:'
+    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=update.message.chat_id)
+    return 'CUSTOMER_MENU'
+
+
 def handle_subscriptions(update: Update, context: CallbackContext):
     query = update.callback_query
     command, subscription_id = query.data.split(';')
@@ -18,10 +29,16 @@ def handle_subscriptions(update: Update, context: CallbackContext):
         message = f'Вы оплатили подписку. Количество доступных обращений: {subscription.orders_amount}.' \
                   f'Нажмите `Заказать работу`.'
         context.bot.send_message(text=message, chat_id=query.message.chat_id)
-    keyboard = get_client_menu_keyboard()
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
-    return 'CUSTOMER_MENU'
+        keyboard = get_client_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
+        return 'CUSTOMER_MENU'
+    if command == 'Назад':
+        context.bot.send_message(text='Меню', chat_id=query.message.chat_id)
+        keyboard = get_client_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
+        return 'CUSTOMER_MENU'
 
 
 def handle_current_customer_order(update: Update, context: CallbackContext):
@@ -129,6 +146,11 @@ def handle_order_creation(update: Update, context: CallbackContext):
         order_text = update.message.text
         client = User.objects.get(tg_chat_id=chat_id)
         Job.objects.create(title=order_text, client=client)
+        message = 'Заказ создан. Вы можете его увидеть в разделе "Мои заявки"'
+        context.bot.send_message(text=message, chat_id=chat_id)
+        message = 'А теперь добавьте описание проекта в поле для ввода:'
+        context.bot.send_message(text=message, chat_id=chat_id)
+        return 'DESCRIPTION_ADDING'
     keyboard = get_client_menu_keyboard()
     reply_markup = InlineKeyboardMarkup(keyboard)
     message = 'Меню:'
