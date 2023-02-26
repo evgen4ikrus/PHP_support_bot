@@ -35,9 +35,12 @@ def handle_subscriptions(update: Update, context: CallbackContext):
     if command == 'Подписка':
         client = Client.objects.get(tg_chat_id=query.message.chat_id)
         subscription = Subscription.objects.get(id=subscription_id)
-        subscription.subscribe(client)
-        message = f'Вы оплатили подписку. Количество доступных обращений: {subscription.orders_amount}.' \
-                  f'Нажмите `Заказать работу`.'
+        purchase = subscription.subscribe(client)
+        if purchase:
+            message = f'Вы оплатили подписку. Количество доступных обращений: {client.orders_left()}.' \
+                      f'Нажмите `Заказать работу`.'
+        else:
+            message = 'Не удалось купить подписку.'
         context.bot.send_message(text=message, chat_id=query.message.chat_id)
         keyboard = get_client_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
