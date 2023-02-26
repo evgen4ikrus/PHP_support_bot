@@ -10,13 +10,18 @@ from products.models import Subscription
 
 def handle_subscriptions(update: Update, context: CallbackContext):
     query = update.callback_query
-    command, payload = query.data.split(';')
-    if command == 'Назад':
-        keyboard = get_client_menu_keyboard()
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        message = 'Меню:'
-        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
-        return 'CUSTOMER_MENU'
+    command, subscription_id = query.data.split(';')
+    if command == 'Подписка':
+        client = Client.objects.get(tg_chat_id=query.message.chat_id)
+        subscription = Subscription.objects.get(id=subscription_id)
+        subscription.subscribe(client)
+        message = f'Вы оплатили подписку. Количество доступных обращений: {subscription.orders_amount}.' \
+                  f'Нажмите `Заказать работу`.'
+        context.bot.send_message(text=message, chat_id=query.message.chat_id)
+    keyboard = get_client_menu_keyboard()
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
+    return 'CUSTOMER_MENU'
 
 
 def handle_current_customer_order(update: Update, context: CallbackContext):
@@ -97,8 +102,9 @@ def handle_customer_menu(update: Update, context: CallbackContext):
         else:
             subscriptions = Subscription.objects.all()
             keyboard = [
-                [InlineKeyboardButton(f'{subscription.title} за {int(subscription.price)}р',
-                                      callback_data=f'Подписка;{subscription.price}:{subscription.orders_amount}')] for
+                [InlineKeyboardButton(
+                    f'{subscription.title} за {int(subscription.price)}р. Кол-во заказов: {subscription.orders_amount}',
+                    callback_data=f'Подписка;{subscription.id}')] for
                 subscription in subscriptions
             ]
             keyboard.append([InlineKeyboardButton('Назад', callback_data='Назад;')])
