@@ -1,9 +1,9 @@
 from django.conf import settings
+from django.contrib import admin
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.paginator import Paginator
 from django.db import models
 from django.utils import timezone
-from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
 from jobs.models import Job
@@ -23,6 +23,7 @@ class TelegramUserManager(BaseUserManager):
 
 class User(AbstractUser):
     tg_chat_id = models.CharField(_("Телеграм чат ID"), max_length=30)
+    is_active_freelancer = models.BooleanField("Активный фрилансер", default=False)
 
 
 class TelegramUser(User):
@@ -45,7 +46,7 @@ class TelegramUser(User):
             elif self.tg_chat_id:
                 self.username = str(self.tg_chat_id)
             super().save(*args, **kwargs)
-            self.is_active = False
+            self.is_active = True
             self.save()
             ClientProfile.objects.create(user=self)
             FreelancerProfile.objects.create(user=self)

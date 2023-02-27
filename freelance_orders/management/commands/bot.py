@@ -8,7 +8,7 @@ from telegram import InlineKeyboardMarkup, Update, InlineKeyboardButton
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater, CallbackContext)
 
-from auth2.models import Freelancer, Client, User
+from auth2.models import Freelancer, Client
 from freelance_orders.client_branch_handlers import handle_customer_menu, handle_order_creation, \
     handle_customer_orders_menu, handle_customer_orders, handle_current_customer_order, handle_subscriptions, \
     handle_description_adding, handle_sending_messages_to_freelancer
@@ -33,7 +33,7 @@ def display_private_access(update, context):
     if query:
         chat_id = query.message.chat_id
         context.bot.send_message(text=closed_access_message, chat_id=chat_id)
-        context.bot.send_message(text=message,reply_markup=reply_markup, chat_id=chat_id)
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
 
 
 def get_database_connection():
@@ -117,7 +117,7 @@ def handle_general_menu(update: Update, context: CallbackContext):
         if not freelancer.is_active:
             display_private_access(update, context)
             return 'MENU'
-        if freelancer.is_active:
+        if freelancer.is_active_freelancer:
             keyboard = get_freelancer_menu_keyboard()
             reply_markup = InlineKeyboardMarkup(keyboard)
             message = 'Меню:'
