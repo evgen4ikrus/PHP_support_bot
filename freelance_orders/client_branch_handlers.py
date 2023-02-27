@@ -38,21 +38,15 @@ def handle_description_adding(update: Update, context: CallbackContext):
     if update.message:
         text = update.message.text
         if text:
-            order_id = context.user_data['order_id']
-            order = Job.objects.get(id=order_id)
-            order.description = text
-            order.save()
             chat_id = update.message.chat_id
-            context.bot.send_message(text='Описание добавлено', chat_id=chat_id)
-    query = update.callback_query
-    if query:
-        if query.data == 'Не добавлять описания':
-            chat_id = query.message.chat_id
-    keyboard = get_client_menu_keyboard()
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = 'Меню:'
-    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
-    return 'CUSTOMER_MENU'
+            client = User.objects.get(tg_chat_id=chat_id)
+            Job.objects.create(title=context.user_data['order_title'], client=client, description=text)
+            message = 'Заказ создан. Вы можете его увидеть в разделе "Мои заказы"'
+            context.bot.send_message(text=message, chat_id=chat_id)
+            keyboard = get_client_menu_keyboard()
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=chat_id)
+            return 'CUSTOMER_MENU'
 
 
 def handle_subscriptions(update: Update, context: CallbackContext):
@@ -184,24 +178,18 @@ def handle_customer_menu(update: Update, context: CallbackContext):
 def handle_order_creation(update: Update, context: CallbackContext):
     query = update.callback_query
     if query:
-        chat_id = query.message.chat_id
+        if query.data == 'Отменить':
+            chat_id = query.message.chat_id
+            keyboard = get_client_menu_keyboard()
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            message = 'Меню:'
+            context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
+            return 'CUSTOMER_MENU'
     else:
         chat_id = update.message.chat_id
-        order_text = update.message.text
-        client = User.objects.get(tg_chat_id=chat_id)
-        order = Job.objects.create(title=order_text, client=client)
-        message = 'Заказ создан. Вы можете его увидеть в разделе "Мои заказы"'
+        order_title = update.message.text
+        context.user_data['order_title'] = order_title
+        message = 'Добавьте описание заказа:'
         context.bot.send_message(text=message, chat_id=chat_id)
-        message = 'А теперь добавьте описание проекта в поле для ввода (необязательно):'
-        keyboard = [
-            [InlineKeyboardButton('Не добавлять описания', callback_data='Не добавлять описания')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
-        context.user_data['order_id'] = order.id
         return 'DESCRIPTION_ADDING'
-    keyboard = get_client_menu_keyboard()
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = 'Меню:'
-    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
-    return 'CUSTOMER_MENU'
+
