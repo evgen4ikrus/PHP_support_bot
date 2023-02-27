@@ -3,9 +3,24 @@ from telegram.ext import CallbackContext
 
 from auth2.models import User, Client
 from freelance_orders.keyboards import get_client_menu_keyboard, get_customer_orders_menu_keyboard, \
-    get_freelancer_current_orders_keyboard
+    get_freelancer_current_orders_keyboard, get_start_keyboard
 from jobs.models import Job
 from products.models import Subscription
+
+
+def display_private_access(update, context):
+    keyboard = get_start_keyboard()
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    message = f'Попробуйте ещё раз:'
+    closed_access_message = 'Доступ к приложению закрыт. Обратитесь к нашему менеджеру.'
+    if update.message:
+        update.message.reply_text(text=closed_access_message)
+        update.message.reply_text(text=message, reply_markup=reply_markup)
+    query = update.callback_query
+    if query:
+        chat_id = query.message.chat_id
+        context.bot.send_message(text=closed_access_message, chat_id=chat_id)
+        context.bot.send_message(text=message,reply_markup=reply_markup, chat_id=chat_id)
 
 
 def handle_sending_messages_to_freelancer(update: Update, context: CallbackContext):
@@ -15,10 +30,10 @@ def handle_sending_messages_to_freelancer(update: Update, context: CallbackConte
             order_id = context.user_data['order_id']
             order = Job.objects.get(id=order_id)
             message = f'Вам пришло сообщение от заказчика, по заказу "{order.title}":\n\n' \
-                      f'{text}\n\n' \
+                      f'<b>{text}</b>\n\n' \
                       f'Чтобы ответить, найдите заказ в разделе "Мои заказы" и нажмите "Написать заказчику"\n' \
                       f'Нажмите `/start` для выхода в меню.'
-            context.bot.send_message(text=message, chat_id=order.freelancer.tg_chat_id)
+            context.bot.send_message(text=message, chat_id=order.freelancer.tg_chat_id, parse_mode="html")
             keyboard = [[InlineKeyboardButton('Вернуться в меню заказов', callback_data='Вернуться в меню заказов')]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             context.bot.send_message(text='Сообщение отправлено фрилансеру', reply_markup=reply_markup,
@@ -38,24 +53,18 @@ def handle_description_adding(update: Update, context: CallbackContext):
     if update.message:
         text = update.message.text
         if text:
-            order_id = context.user_data['order_id']
-            order = Job.objects.get(id=order_id)
-            order.description = text
-            order.save()
             chat_id = update.message.chat_id
-            context.bot.send_message(text='Описание добавлено', chat_id=chat_id)
-    query = update.callback_query
-    if query:
-        if query.data == 'Не добавлять описания':
-            chat_id = query.message.chat_id
-    keyboard = get_client_menu_keyboard()
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = 'Меню:'
-    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
-    return 'CUSTOMER_MENU'
+            client = User.objects.get(tg_chat_id=chat_id)
+            Job.objects.create(title=context.user_data['order_title'], client=client, description=text)
+            message = 'Заказ создан. Вы можете его увидеть в разделе "Мои заказы"'
+            context.bot.send_message(text=message, chat_id=chat_id)
+            keyboard = get_client_menu_keyboard()
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=chat_id)
+            return 'CUSTOMER_MENU'
 
 
-def handle_subscriptions(update: Update, context: CallbackContext):
+def handle_subscriptions(update, context):
     query = update.callback_query
     command, subscription_id = query.data.split(';')
     if command == 'Подписка':
@@ -72,12 +81,19 @@ def handle_subscriptions(update: Update, context: CallbackContext):
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'CUSTOMER_MENU'
-    if command == 'Назад':
+    elif command == 'Назад':
         context.bot.send_message(text='Меню', chat_id=query.message.chat_id)
         keyboard = get_client_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'CUSTOMER_MENU'
+    elif command == 'В общее меню':
+        user_name = update.effective_user.first_name
+        keyboard = get_start_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message = f'Привет, {user_name}'
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+        return 'MENU'
 
 
 def handle_current_customer_order(update: Update, context: CallbackContext):
@@ -98,6 +114,10 @@ def handle_current_customer_order(update: Update, context: CallbackContext):
 
 def handle_customer_orders(update: Update, context: CallbackContext):
     query = update.callback_query
+    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    if not client.is_active:
+        display_private_access(update, context)
+        return 'MENU'
     command, payload = query.data.split(';')
     if command == 'Назад':
         message = 'Ваши заказы'
@@ -123,6 +143,10 @@ def handle_customer_orders(update: Update, context: CallbackContext):
 def handle_customer_orders_menu(update: Update, context: CallbackContext):
     query = update.callback_query
     client = User.objects.get(tg_chat_id=query.message.chat_id)
+    if not client.is_active:
+        display_private_access(update, context)
+        return 'MENU'
+    client = User.objects.get(tg_chat_id=query.message.chat_id)
     if query.data == 'Назад':
         keyboard = get_client_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -147,7 +171,10 @@ def handle_customer_orders_menu(update: Update, context: CallbackContext):
 
 def handle_customer_menu(update: Update, context: CallbackContext):
     query = update.callback_query
-    client = Client.objects.get(tg_chat_id=query.message.chat_id)
+    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    if not client.is_active:
+        display_private_access(update, context)
+        return 'MENU'
     if query.data == 'Оставить заявку':
         if client.orders_left():
             message = 'Примеры названий заказов:\n' \
@@ -173,35 +200,40 @@ def handle_customer_menu(update: Update, context: CallbackContext):
             message = 'Для создания заказа, необходимо купить подписку, выберите одну из них:'
             context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
             return 'SUBSCRIPTIONS'
-    if query.data == 'Мои заказы':
+    elif query.data == 'Мои заказы':
         message = 'Ваши заказы'
         keyboard = get_customer_orders_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'CUSTOMER_ORDERS_MENU'
+    elif query.data == 'Назад':
+        user_name = update.effective_user.first_name
+        keyboard = get_start_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message = f'Привет, {user_name}'
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id )
+        return 'MENU'
 
 
 def handle_order_creation(update: Update, context: CallbackContext):
     query = update.callback_query
+    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    if not client.is_active:
+        display_private_access(update, context)
+        return 'MENU'
     if query:
-        chat_id = query.message.chat_id
+        if query.data == 'Отменить':
+            chat_id = query.message.chat_id
+            keyboard = get_client_menu_keyboard()
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            message = 'Меню:'
+            context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
+            return 'CUSTOMER_MENU'
     else:
         chat_id = update.message.chat_id
-        order_text = update.message.text
-        client = User.objects.get(tg_chat_id=chat_id)
-        order = Job.objects.create(title=order_text, client=client)
-        message = 'Заказ создан. Вы можете его увидеть в разделе "Мои заказы"'
+        order_title = update.message.text
+        context.user_data['order_title'] = order_title
+        message = 'Добавьте описание заказа:'
         context.bot.send_message(text=message, chat_id=chat_id)
-        message = 'А теперь добавьте описание проекта в поле для ввода (необязательно):'
-        keyboard = [
-            [InlineKeyboardButton('Не добавлять описания', callback_data='Не добавлять описания')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
-        context.user_data['order_id'] = order.id
         return 'DESCRIPTION_ADDING'
-    keyboard = get_client_menu_keyboard()
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = 'Меню:'
-    context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
-    return 'CUSTOMER_MENU'
+

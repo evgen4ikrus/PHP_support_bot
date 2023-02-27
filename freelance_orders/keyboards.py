@@ -7,6 +7,9 @@ def get_freelancer_menu_keyboard():
             InlineKeyboardButton('Найти заказ', callback_data='Найти заказ'),
             InlineKeyboardButton('Мои заказы', callback_data='Мои заказы')
         ],
+        [
+            InlineKeyboardButton('Назад', callback_data='Назад')
+        ]
     ]
     return keyboard
 
@@ -54,6 +57,9 @@ def get_client_menu_keyboard():
             InlineKeyboardButton('Заказать работу', callback_data='Оставить заявку'),
             InlineKeyboardButton('Мои заказы', callback_data='Мои заказы')
         ],
+        [
+            InlineKeyboardButton('Назад', callback_data='Назад')
+        ]
     ]
     return keyboard
 
