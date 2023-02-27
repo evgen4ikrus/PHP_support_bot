@@ -15,10 +15,10 @@ def handle_sending_messages_to_freelancer(update: Update, context: CallbackConte
             order_id = context.user_data['order_id']
             order = Job.objects.get(id=order_id)
             message = f'Вам пришло сообщение от заказчика, по заказу "{order.title}":\n\n' \
-                      f'{text}\n\n' \
+                      f'<b>{text}</b>\n\n' \
                       f'Чтобы ответить, найдите заказ в разделе "Мои заказы" и нажмите "Написать заказчику"\n' \
                       f'Нажмите `/start` для выхода в меню.'
-            context.bot.send_message(text=message, chat_id=order.freelancer.tg_chat_id)
+            context.bot.send_message(text=message, chat_id=order.freelancer.tg_chat_id, parse_mode="html")
             keyboard = [[InlineKeyboardButton('Вернуться в меню заказов', callback_data='Вернуться в меню заказов')]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             context.bot.send_message(text='Сообщение отправлено фрилансеру', reply_markup=reply_markup,
