@@ -159,7 +159,7 @@ def fill_order(update: Update, context: CallbackContext) -> CLIENT:
         description=context.user_data[CLIENT_ORDER]
     )
 
-    reply_keyboard = [['Меню клиента']]
+    reply_keyboard = [['Тарифы'], ['Меню клиента']]
     reply_markup = ReplyKeyboardMarkup(
         reply_keyboard, one_time_keyboard=True, resize_keyboard=True
     )
@@ -169,8 +169,45 @@ def fill_order(update: Update, context: CallbackContext) -> CLIENT:
 
         Ваша заявка принята!
         В течении дня с вами свяжется менеджер.
+
+        Ваш тариф Эконом - до 5 заявок в месяц на помощь, по заявке ответят в течение суток.
+        Чтобы ускорить обработку заявки выберете другой тариф
     '''
     message = dedent(message)
+
+    update.message.reply_text(
+        message,
+        reply_markup=reply_markup
+    )
+
+    return CLIENT
+
+
+def show_fare(update: Update, context: CallbackContext) -> CLIENT:
+    reply_keyboard = [['Стандарт'], ['VIP'], ['Меню клиента']]
+    reply_markup = ReplyKeyboardMarkup(
+        reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+    )
+
+    message = 'Ты на странице тарифов'
+
+    update.message.reply_text(
+        message,
+        reply_markup=reply_markup
+    )
+
+    return CLIENT
+
+
+def setting_tarif(update: Update, context: CallbackContext) -> CLIENT:
+    context.user_data[CLIENT] = update.message.text
+    reply_keyboard = [['Меню клиента']]
+    reply_markup = ReplyKeyboardMarkup(
+        reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+    )
+
+    tarif = context.user_data[CLIENT]
+    message = f'Ваш тариф {tarif}'
 
     update.message.reply_text(
         message,
@@ -186,8 +223,10 @@ def client_main() -> dict:
             MessageHandler(Filters.regex(r'Мои заявки'), get_client_orders),
             MessageHandler(Filters.regex(r'Оставить заявку'), make_order),
             MessageHandler(Filters.regex(r'Меню клиента'), fetch_client_menu),
-            MessageHandler(Filters.regex(r'\d{2}'), get_order),
-            MessageHandler(Filters.regex(r'Следующие'), get_next_page_orders)
+            MessageHandler(Filters.regex(r'\d+'), get_order),
+            MessageHandler(Filters.regex(r'Следующие'), get_next_page_orders),
+            MessageHandler(Filters.regex(r'Тарифы'), show_fare),
+            MessageHandler(Filters.regex(r'^(Стандарт|VIP)$'), setting_tarif)
         ],
         CLIENT_ORDER: [
             MessageHandler(Filters.all, fill_order)

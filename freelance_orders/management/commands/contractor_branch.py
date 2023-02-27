@@ -1,6 +1,6 @@
 import logging
 
-# from textwrap import dedent
+from textwrap import dedent
 
 from telegram import Update
 from telegram import ReplyKeyboardMarkup
