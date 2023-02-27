@@ -8,6 +8,21 @@ from jobs.models import Job
 from products.models import Subscription
 
 
+def display_private_access(update, context):
+    keyboard = get_start_keyboard()
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    message = f'Попробуйте ещё раз:'
+    closed_access_message = 'Доступ к приложению закрыт. Обратитесь к нашему менеджеру.'
+    if update.message:
+        update.message.reply_text(text=closed_access_message)
+        update.message.reply_text(text=message, reply_markup=reply_markup)
+    query = update.callback_query
+    if query:
+        chat_id = query.message.chat_id
+        context.bot.send_message(text=closed_access_message, chat_id=chat_id)
+        context.bot.send_message(text=message,reply_markup=reply_markup, chat_id=chat_id)
+
+
 def handle_sending_messages_to_freelancer(update: Update, context: CallbackContext):
     if update.message:
         text = update.message.text
@@ -49,7 +64,7 @@ def handle_description_adding(update: Update, context: CallbackContext):
             return 'CUSTOMER_MENU'
 
 
-def handle_subscriptions(update: Update, context: CallbackContext):
+def handle_subscriptions(update, context):
     query = update.callback_query
     command, subscription_id = query.data.split(';')
     if command == 'Подписка':
@@ -99,6 +114,10 @@ def handle_current_customer_order(update: Update, context: CallbackContext):
 
 def handle_customer_orders(update: Update, context: CallbackContext):
     query = update.callback_query
+    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    if not client.is_active:
+        display_private_access(update, context)
+        return 'MENU'
     command, payload = query.data.split(';')
     if command == 'Назад':
         message = 'Ваши заказы'
@@ -124,6 +143,10 @@ def handle_customer_orders(update: Update, context: CallbackContext):
 def handle_customer_orders_menu(update: Update, context: CallbackContext):
     query = update.callback_query
     client = User.objects.get(tg_chat_id=query.message.chat_id)
+    if not client.is_active:
+        display_private_access(update, context)
+        return 'MENU'
+    client = User.objects.get(tg_chat_id=query.message.chat_id)
     if query.data == 'Назад':
         keyboard = get_client_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -148,7 +171,10 @@ def handle_customer_orders_menu(update: Update, context: CallbackContext):
 
 def handle_customer_menu(update: Update, context: CallbackContext):
     query = update.callback_query
-    client = Client.objects.get(tg_chat_id=query.message.chat_id)
+    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    if not client.is_active:
+        display_private_access(update, context)
+        return 'MENU'
     if query.data == 'Оставить заявку':
         if client.orders_left():
             message = 'Примеры названий заказов:\n' \
@@ -191,6 +217,10 @@ def handle_customer_menu(update: Update, context: CallbackContext):
 
 def handle_order_creation(update: Update, context: CallbackContext):
     query = update.callback_query
+    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    if not client.is_active:
+        display_private_access(update, context)
+        return 'MENU'
     if query:
         if query.data == 'Отменить':
             chat_id = query.message.chat_id

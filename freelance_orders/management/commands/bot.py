@@ -21,6 +21,21 @@ from products.models import Subscription
 _database = None
 
 
+def display_private_access(update, context):
+    keyboard = get_start_keyboard()
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    message = f'Попробуйте ещё раз:'
+    closed_access_message = 'Доступ к приложению закрыт. Обратитесь к нашему менеджеру.'
+    if update.message:
+        update.message.reply_text(text=closed_access_message)
+        update.message.reply_text(text=message, reply_markup=reply_markup)
+    query = update.callback_query
+    if query:
+        chat_id = query.message.chat_id
+        context.bot.send_message(text=closed_access_message, chat_id=chat_id)
+        context.bot.send_message(text=message,reply_markup=reply_markup, chat_id=chat_id)
+
+
 def get_database_connection():
     global _database
     if _database is None:
@@ -74,8 +89,10 @@ def handle_general_menu(update: Update, context: CallbackContext):
     user_name = update.effective_user.first_name
     query = update.callback_query
     if query.data == 'Заказчик':
-        Client.objects.get_or_create(tg_chat_id=query.message.chat_id)
-        client = Client.objects.get(tg_chat_id=query.message.chat_id)
+        client, _ = Client.objects.get_or_create(tg_chat_id=query.message.chat_id)
+        if not client.is_active:
+            display_private_access(update, context)
+            return 'MENU'
         if client.orders_left():
             keyboard = get_client_menu_keyboard()
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -97,6 +114,9 @@ def handle_general_menu(update: Update, context: CallbackContext):
             return 'SUBSCRIPTIONS'
     elif query.data == 'Фрилансер':
         freelancer, _ = Freelancer.objects.get_or_create(tg_chat_id=query.message.chat_id)
+        if not freelancer.is_active:
+            display_private_access(update, context)
+            return 'MENU'
         if freelancer.is_active:
             keyboard = get_freelancer_menu_keyboard()
             reply_markup = InlineKeyboardMarkup(keyboard)
