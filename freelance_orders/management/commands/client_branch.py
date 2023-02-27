@@ -24,10 +24,6 @@ CLIENT_ORDER = 3
 
 
 def fetch_client_menu(update: Update, context: CallbackContext) -> CLIENT:
-    Client.objects.get_or_create(
-        tg_chat_id=update.message.chat_id
-    )
-
     reply_keyboard = [['Мои заявки', 'Оставить заявку']]
     reply_markup = ReplyKeyboardMarkup(
         reply_keyboard, one_time_keyboard=True, resize_keyboard=True
@@ -171,6 +167,7 @@ def fill_order(update: Update, context: CallbackContext) -> CLIENT:
         В течении дня с вами свяжется менеджер.
 
         Ваш тариф Эконом - до 5 заявок в месяц на помощь, по заявке ответят в течение суток.
+
         Чтобы ускорить обработку заявки выберете другой тариф
     '''
     message = dedent(message)

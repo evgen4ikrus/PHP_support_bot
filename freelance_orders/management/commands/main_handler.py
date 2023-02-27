@@ -8,7 +8,7 @@ from telegram import ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, MessageHandler, Filters
 from telegram.ext import CallbackContext, ConversationHandler
 
-from auth2.models import Client
+from auth2.models import Client, Freelancer
 
 
 logging.basicConfig(
@@ -57,20 +57,29 @@ def client(update: Update, context: CallbackContext) -> CLIENT:
     return CLIENT
 
 
-def freelancer(update: Update, context: CallbackContext) -> CONTRACTOR:
-    reply_keyboard = [['Мои заказы', 'Взять заказ']]
+def contractor(update: Update, context: CallbackContext) -> CONTRACTOR:
+    contractor, _ = Freelancer.objects.get_or_create(
+        tg_chat_id=update.message.chat_id
+    )
+    if contractor.is_active:
+        reply_keyboard = [['Доступные заказы', 'Мои заказы']]
+        reply_markup = ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, resize_keyboard=True
+        )
+        message = 'Объяснение как работать с ботом и цены за работу'
+
+        update.message.reply_text(
+            message,
+            reply_markup=reply_markup
+        )
+
+        return CONTRACTOR
+
     user = update.effective_user.first_name
-    reply_markup = ReplyKeyboardMarkup(
-        reply_keyboard, one_time_keyboard=True, resize_keyboard=True
-    )
-    message = fr'Ты на странице подрядчика, {user}'
-
+    message = fr'Ой-ей, {user}. Обратитесь к менеджеру. Вы не активны'
     update.message.reply_text(
-        message,
-        reply_markup=reply_markup
+        message
     )
-
-    return CONTRACTOR
 
 
 def cancel(update: Update, context: CallbackContext) -> ConversationHandler.END:
@@ -92,7 +101,7 @@ def get_bot_handler():
         states={
             MENU: [
                 MessageHandler(Filters.regex(r'Клиент'), client),
-                MessageHandler(Filters.regex(r'Фрилансер'), freelancer)
+                MessageHandler(Filters.regex(r'Фрилансер'), contractor)
             ]
         },
         fallbacks=[CommandHandler('cancel', cancel)]
