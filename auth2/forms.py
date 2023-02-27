@@ -20,7 +20,7 @@ class Auth2UserCreationForm(UserCreationForm):
         fields = ('tg_chat_id',)
 
 
-class FreelancerUserChangeForm(UserChangeForm):
+class TelegramUserChangeForm(UserChangeForm):
     def __init__(self, *args, **kwargs):
         super(UserChangeForm, self).__init__(*args, **kwargs)
 
@@ -33,10 +33,14 @@ class FreelancerUserChangeForm(UserChangeForm):
             'last_name',
             'is_active',
         )
+    def clean_is_staff(self):
+        is_staff = self.cleaned_data["is_staff"]
+        if is_staff:
+            raise ValidationError("Вы не можете дать обычному пользователю доступ в админку")
+        return is_staff
 
-    def clean_is_active(self):
-        is_active = self.cleaned_data["is_active"]
-        payrate = self.data["freelancerprofile-0-payrate"]
-        if is_active and not payrate:
-            raise ValidationError("Вы не можете активировать фрилансера не назначив ему оклад")
-        return is_active
+    def clean_is_superuser(self):
+        is_superuser = self.cleaned_data["is_superuser"]
+        if is_superuser:
+            raise ValidationError("Вы не можете сделать обычного пользователя суперюзером")
+        return is_superuser
