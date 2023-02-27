@@ -94,10 +94,10 @@ def handle_general_menu(update: Update, context: CallbackContext):
 
 
 def start(update: Update, context: CallbackContext):
-    user = update.effective_user.first_name
+    user_name = update.effective_user.first_name
     keyboard = get_start_keyboard()
     reply_markup = InlineKeyboardMarkup(keyboard)
-    message = f'Привет, {user}'
+    message = f'Привет, {user_name}'
     update.message.reply_text(text=message, reply_markup=reply_markup)
     return 'MENU'
 

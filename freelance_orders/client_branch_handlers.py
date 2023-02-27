@@ -3,7 +3,7 @@ from telegram.ext import CallbackContext
 
 from auth2.models import User, Client
 from freelance_orders.keyboards import get_client_menu_keyboard, get_customer_orders_menu_keyboard, \
-    get_freelancer_current_orders_keyboard
+    get_freelancer_current_orders_keyboard, get_start_keyboard
 from jobs.models import Job
 from products.models import Subscription
 
@@ -167,12 +167,19 @@ def handle_customer_menu(update: Update, context: CallbackContext):
             message = 'Для создания заказа, необходимо купить подписку, выберите одну из них:'
             context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
             return 'SUBSCRIPTIONS'
-    if query.data == 'Мои заказы':
+    elif query.data == 'Мои заказы':
         message = 'Ваши заказы'
         keyboard = get_customer_orders_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'CUSTOMER_ORDERS_MENU'
+    elif query.data == 'Назад':
+        user_name = update.effective_user.first_name
+        keyboard = get_start_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message = f'Привет, {user_name}'
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id )
+        return 'MENU'
 
 
 def handle_order_creation(update: Update, context: CallbackContext):

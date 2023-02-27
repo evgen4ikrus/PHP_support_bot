@@ -4,7 +4,7 @@ from telegram.ext import CallbackContext
 from auth2.models import Freelancer
 from auth2.models import User
 from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_menu_freelancer_orders_keyboard, \
-    get_freelancer_current_orders_keyboard, get_freelancer_orders_keyboard
+    get_freelancer_current_orders_keyboard, get_freelancer_orders_keyboard, get_start_keyboard
 from jobs.models import Job
 
 
@@ -175,3 +175,10 @@ def handle_freelancer_menu(update: Update, context: CallbackContext):
         message = 'Ваши заказы:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'MENU_FREELANCER_ORDERS'
+    if query.data == 'Назад':
+        user_name = update.effective_user.first_name
+        keyboard = get_start_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message = f'Привет, {user_name}'
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id )
+        return 'MENU'
