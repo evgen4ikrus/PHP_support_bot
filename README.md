@@ -14,13 +14,16 @@ python3 -m venv venv
 ```
 python3 -m pip install -r requirements.txt
 ```
-* Создайте файл .env в корневой папке проекта, и запишите в него переменные окружения в формате `КЛЮЧ=ЗНАЧЕНИЕ`
-(отмеченные звездочкой определять необязательно, у них есть дефолдные значения):
+* Сделайте копию файла env.example и назовите его .env
+```
+cp env.example .env
+```
+* Задайте значения переменным в файле .env:
 ```
 TELEGRAM_BOT_TOKEN - токен Вашего telegram бота
-*SECRET_KEY - секретный ключ джанго # по умолчанию `12345`
-*DEBUG - дебаг-режим #по умолчанию True
-*ALLOWED_HOSTS - список разрешенных хостов # по умолчанию `127.0.0.1`
+DJANGO_SETTINGS_MODULE - модуль настроек, по-умолчанию 'PHP_support_bot.settings.dev'
+SECRET_KEY - секретный ключ джанго
+ALLOWED_HOSTS - список разрешенных хостов
 REDIS_DATABASE_PASSWORD
 REDIS_DATABASE_HOST
 REDIS_DATABASE_PORT
