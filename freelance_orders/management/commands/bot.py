@@ -103,17 +103,23 @@ def handle_general_menu(update: Update, context: CallbackContext):
             message = 'Меню:'
             context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
             return 'FREELANCER_MENU'
-        message = f'{user_name}, в ближайшие 10 минут в Вами свяжется наш менеджер.\n' \
-                  f'После разговора с менеджером нажмите `/start`.'
-        context.bot.send_message(text=message, chat_id=query.message.chat_id)
+        message = f'{user_name}, в ближайшие 10 минут в Вами свяжется наш менеджер.'
+        keyboard = [[InlineKeyboardButton('Назад', callback_data='Назад')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'START'
 
 
 def start(update: Update, context: CallbackContext):
+    query = update.callback_query
     user_name = update.effective_user.first_name
     keyboard = get_start_keyboard()
     reply_markup = InlineKeyboardMarkup(keyboard)
     message = f'Привет, {user_name}'
+    if query:
+        if query.data == 'Назад':
+            context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+            return 'MENU'
     update.message.reply_text(text=message, reply_markup=reply_markup)
     return 'MENU'
 
