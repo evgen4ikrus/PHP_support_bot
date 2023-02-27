@@ -66,12 +66,19 @@ def handle_subscriptions(update: Update, context: CallbackContext):
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'CUSTOMER_MENU'
-    if command == 'Назад':
+    elif command == 'Назад':
         context.bot.send_message(text='Меню', chat_id=query.message.chat_id)
         keyboard = get_client_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'CUSTOMER_MENU'
+    elif command == 'В общее меню':
+        user_name = update.effective_user.first_name
+        keyboard = get_start_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message = f'Привет, {user_name}'
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+        return 'MENU'
 
 
 def handle_current_customer_order(update: Update, context: CallbackContext):

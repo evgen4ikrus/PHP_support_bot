@@ -4,11 +4,11 @@ import redis
 import telegram
 from django.core.management.base import BaseCommand
 from environs import Env
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup, Update, InlineKeyboardButton
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater, CallbackContext)
 
-from auth2.models import Freelancer, Client
+from auth2.models import Freelancer, Client, User
 from freelance_orders.client_branch_handlers import handle_customer_menu, handle_order_creation, \
     handle_customer_orders_menu, handle_customer_orders, handle_current_customer_order, handle_subscriptions, \
     handle_description_adding, handle_sending_messages_to_freelancer
@@ -16,6 +16,7 @@ from freelance_orders.freelancer_branch_handlers import handle_freelancer_menu, 
     handle_freelancer_order_description, handle_freelancer_orders, handle_menu_freelancer_orders, \
     handle_current_freelancer_order, handle_sending_messages_to_customer
 from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_start_keyboard, get_client_menu_keyboard
+from products.models import Subscription
 
 _database = None
 
@@ -74,11 +75,26 @@ def handle_general_menu(update: Update, context: CallbackContext):
     query = update.callback_query
     if query.data == 'Заказчик':
         Client.objects.get_or_create(tg_chat_id=query.message.chat_id)
-        keyboard = get_client_menu_keyboard()
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        message = 'Меню:'
-        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
-        return 'CUSTOMER_MENU'
+        client = Client.objects.get(tg_chat_id=query.message.chat_id)
+        if client.orders_left():
+            keyboard = get_client_menu_keyboard()
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            message = 'Меню:'
+            context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+            return 'CUSTOMER_MENU'
+        else:
+            subscriptions = Subscription.objects.all()
+            keyboard = [
+                [InlineKeyboardButton(
+                    f'{subscription.title} за {int(subscription.price)}р. Кол-во заказов: {subscription.orders_amount}',
+                    callback_data=f'Подписка;{subscription.id}')] for
+                subscription in subscriptions
+            ]
+            keyboard.append([InlineKeyboardButton('Назад', callback_data='В общее меню;')])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            message = 'Для создания заказа, необходимо купить подписку, выберите одну из них:'
+            context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
+            return 'SUBSCRIPTIONS'
     elif query.data == 'Фрилансер':
         freelancer, _ = Freelancer.objects.get_or_create(tg_chat_id=query.message.chat_id)
         if freelancer.is_active:
