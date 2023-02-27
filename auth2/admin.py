@@ -3,39 +3,42 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm
 from django.utils.translation import gettext_lazy as _
 
-from auth2.forms import Auth2UserCreationForm, FreelancerUserChangeForm
-from auth2.models import Freelancer, Client, ClientProfile, FreelancerProfile, Staff
+from auth2.forms import Auth2UserCreationForm, TelegramUserChangeForm
+from auth2.models import StaffUser, TelegramUser, ClientProfile, FreelancerProfile
+
+
+class ClientInline(admin.StackedInline):
+    model = ClientProfile
+    can_delete = False
+    readonly_fields = ("orders_created", "orders_in_progress", "orders_done")
+    verbose_name_plural = "Клиенты"
+
+
+class FreelancerInline(admin.StackedInline):
+    model = FreelancerProfile
+    can_delete = False
+    readonly_fields = ("jobs_done",)
+    verbose_name_plural = "Фрилансеры"
 
 
 class UserAdmin(BaseUserAdmin):
     add_form = Auth2UserCreationForm
-    readonly_fields = ("type",)
     fieldsets = (
-        (None, {"fields": ("type", "tg_chat_id", "password")}),
+        (None, {"fields": ("tg_chat_id", "password")}),
         (_("Personal info"), {"fields": ("first_name", "last_name")}),
         (_("Permissions"), {"fields": ("is_active",)}),
     )
     search_fields = (
         "tg_chat_id",
-        "first_name",
-        "last_name",
         "email",
     )
-    list_display = (
-        "username",
-        "tg_chat_id",
-        "first_name",
-        "last_name",
-        "is_active",
-        "is_staff",
-        "is_superuser",
-    )
 
 
+@admin.register(StaffUser)
 class StaffUserAdmin(UserAdmin):
     add_form = UserCreationForm
     fieldsets = (
-        (None, {"fields": ("username", "type", "tg_chat_id", "password")}),
+        (None, {"fields": ("username", "tg_chat_id", "password")}),
         (_("Personal info"), {"fields": ("first_name", "last_name")}),
         (
             _("Permissions"),
@@ -63,44 +66,13 @@ class StaffUserAdmin(UserAdmin):
     )
 
 
-class ClientInline(admin.StackedInline):
-    model = ClientProfile
-    can_delete = False
-    verbose_name_plural = "Клиенты"
-
-
-class ClientUserAdmin(UserAdmin):
-    inlines = (ClientInline,)
+@admin.register(TelegramUser)
+class TelegramUserAdmin(UserAdmin):
+    inlines = (ClientInline, FreelancerInline)
+    form = TelegramUserChangeForm
     list_display = (
         "tg_chat_id",
         "first_name",
         "last_name",
         "is_active",
-        "is_staff",
-        "is_superuser",
     )
-
-
-class FreelancerInline(admin.StackedInline):
-    model = FreelancerProfile
-    can_delete = False
-    readonly_fields = ("orders_done",)
-    verbose_name_plural = "Фрилансеры"
-
-
-class FreelancerUserAdmin(UserAdmin):
-    form = FreelancerUserChangeForm
-    inlines = (FreelancerInline,)
-    list_display = (
-        "tg_chat_id",
-        "first_name",
-        "last_name",
-        "is_active",
-        "is_staff",
-        "is_superuser",
-    )
-
-
-admin.site.register(Staff, StaffUserAdmin)
-admin.site.register(Client, ClientUserAdmin)
-admin.site.register(Freelancer, FreelancerUserAdmin)
