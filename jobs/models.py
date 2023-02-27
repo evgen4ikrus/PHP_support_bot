@@ -59,7 +59,7 @@ class Job(TimeStampedModel):
         self._deadline = value
 
     @transition(field=status, source=Statuses.CREATED, target=Statuses.IN_PROGRESS)
-    def take(self, freelancer: "auth2.models.Freelancer", deadline: datetime.datetime) -> Optional[Job]:
+    def take(self, freelancer: "auth2.models.TelegramUser", deadline: datetime.datetime) -> Optional[Job]:
         self.deadline = deadline
         self.freelancer = freelancer
         self.save()
