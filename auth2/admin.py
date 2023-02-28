@@ -45,6 +45,7 @@ class StaffUserAdmin(UserAdmin):
             {
                 "fields": (
                     "is_active",
+                    "is_active_freelancer",
                     "is_staff",
                     "is_superuser",
                     "groups",
@@ -61,6 +62,7 @@ class StaffUserAdmin(UserAdmin):
         "first_name",
         "last_name",
         "is_active",
+        "is_active_freelancer",
         "is_staff",
         "is_superuser",
     )
