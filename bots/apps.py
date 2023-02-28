@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class FreelanceOrdersConfig(AppConfig):
+class BotConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'freelance_orders'
+    name = 'bots'
