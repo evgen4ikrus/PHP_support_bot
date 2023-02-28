@@ -26,7 +26,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {"fields": ("tg_chat_id", "password")}),
         (_("Personal info"), {"fields": ("first_name", "last_name")}),
-        (_("Permissions"), {"fields": ("is_active",)}),
+        (_("Permissions"), {"fields": ("is_active", "is_active_freelancer")}),
     )
     search_fields = (
         "tg_chat_id",
@@ -75,4 +75,5 @@ class TelegramUserAdmin(UserAdmin):
         "first_name",
         "last_name",
         "is_active",
+        "is_active_freelancer",
     )
