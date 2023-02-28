@@ -6,15 +6,15 @@ from django.core.management.base import BaseCommand
 from environs import Env
 from telegram import InlineKeyboardMarkup, Update, InlineKeyboardButton
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
-                          MessageHandler, Updater, CallbackContext)
+                          MessageHandler, Updater, CallbackContext, InlineQueryHandler)
 
 from auth2.models import Freelancer, Client
 from freelance_orders.client_branch_handlers import handle_customer_menu, handle_order_creation, \
     handle_customer_orders_menu, handle_customer_orders, handle_current_customer_order, handle_subscriptions, \
-    handle_description_adding, handle_sending_messages_to_freelancer
+    handle_description_adding, handle_sending_messages_to_freelancer, handle_freelancer_message
 from freelance_orders.freelancer_branch_handlers import handle_freelancer_menu, handle_order_search, \
     handle_freelancer_order_description, handle_freelancer_orders, handle_menu_freelancer_orders, \
-    handle_current_freelancer_order, handle_sending_messages_to_customer
+    handle_current_freelancer_order, handle_sending_messages_to_customer, handle_customer_message
 from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_start_keyboard, get_client_menu_keyboard
 from products.models import Subscription
 
@@ -79,6 +79,8 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'SUBSCRIPTIONS': handle_subscriptions,
         'HANDLE_USERS_REPLY': handle_users_reply,
         'SENDING_MESSAGES_TO_FREELANCER': handle_sending_messages_to_freelancer,
+        'HANDLE_CUSTOMER_MESSAGE': handle_customer_message,
+        'HANDLE_FREELANCER_MESSAGE': handle_freelancer_message,
     }
     state_handler = states_functions[user_state]
     next_state = state_handler(update, context)
@@ -155,6 +157,7 @@ class Command(BaseCommand):
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler('start', handle_users_reply))
+    dispatcher.add_handler(InlineQueryHandler(handle_customer_message))
 
     updater.start_polling()
     updater.idle()

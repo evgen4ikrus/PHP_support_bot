@@ -1,11 +1,43 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
-
+import os
+import redis
 from auth2.models import User, Client
 from freelance_orders.keyboards import get_client_menu_keyboard, get_customer_orders_menu_keyboard, \
     get_freelancer_current_orders_keyboard, get_start_keyboard
 from jobs.models import Job
 from products.models import Subscription
+_database = None
+
+
+def handle_freelancer_message(update: Update, context: CallbackContext):
+    query = update.callback_query
+    if query:
+        command, freelancer_chat_id = query.data.split(';')
+        if command == 'Ответить':
+            message = 'Напишите ответ в поле для ввода:'
+            context.user_data['freelancer_chat_id'] = freelancer_chat_id
+            context.bot.send_message(text=message, chat_id=query.message.chat_id)
+        return 'HANDLE_FREELANCER_MESSAGE'
+    if update.message:
+        freelancer_chat_id = context.user_data['customer_chat_id']
+        answer = f'Вам пришел ответ от заказчика:\n\n<b>{update.message.text}</b>'
+        context.bot.send_message(text='Ответ отправлен', chat_id=update.message.chat_id)
+        context.bot.send_message(text=answer, chat_id=freelancer_chat_id, parse_mode="html")
+        keyboard = get_client_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=update.message.chat_id)
+        return 'CUSTOMER_MENU'
+
+
+def get_database_connection():
+    global _database
+    if _database is None:
+        database_password = os.getenv('REDIS_DATABASE_PASSWORD')
+        database_host = os.getenv('REDIS_DATABASE_HOST')
+        database_port = os.getenv('REDIS_DATABASE_PORT')
+        _database = redis.Redis(host=database_host, port=int(database_port), password=database_password)
+    return _database
 
 
 def display_private_access(update, context):
@@ -23,18 +55,28 @@ def display_private_access(update, context):
         context.bot.send_message(text=message,reply_markup=reply_markup, chat_id=chat_id)
 
 
+def get_database_connection():
+    global _database
+    if _database is None:
+        database_password = os.getenv('REDIS_DATABASE_PASSWORD')
+        database_host = os.getenv('REDIS_DATABASE_HOST')
+        database_port = os.getenv('REDIS_DATABASE_PORT')
+        _database = redis.Redis(host=database_host, port=int(database_port), password=database_password)
+    return _database
+
+
 def handle_sending_messages_to_freelancer(update: Update, context: CallbackContext):
     if update.message:
         text = update.message.text
         if text:
+            db = get_database_connection()
             order_id = context.user_data['order_id']
             order = Job.objects.get(id=order_id)
             message = f'Вам пришло сообщение от заказчика, по заказу "{order.title}":\n\n' \
-                      f'<b>{text}</b>\n\n' \
-                      f'Чтобы ответить, найдите заказ в разделе "Мои заказы" и нажмите "Написать заказчику"\n' \
-                      f'Нажмите `/start` для выхода в меню.'
-            keyboard = [[InlineKeyboardButton('Ответить', callback_data='Ответить')]]
+                      f'<b>{text}</b>'
+            keyboard = [[InlineKeyboardButton('Ответить', callback_data=f'Ответить;{update.message.chat_id}')]]
             reply_markup = InlineKeyboardMarkup(keyboard)
+            db.set(f'telegram_{order.freelancer.tg_chat_id}', 'HANDLE_CUSTOMER_MESSAGE')
             context.bot.send_message(text=message, chat_id=order.freelancer.tg_chat_id, reply_markup=reply_markup, parse_mode="html")
             keyboard = [[InlineKeyboardButton('Вернуться в меню заказов', callback_data='Вернуться в меню заказов')]]
             reply_markup = InlineKeyboardMarkup(keyboard)
