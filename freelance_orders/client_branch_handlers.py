@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 
-from auth2.models import User, Client
+from auth2.models import Client
 from freelance_orders.keyboards import get_client_menu_keyboard, get_customer_orders_menu_keyboard, \
     get_freelancer_current_orders_keyboard, get_start_keyboard
 from jobs.models import Job
@@ -56,7 +56,7 @@ def handle_description_adding(update: Update, context: CallbackContext):
         text = update.message.text
         if text:
             chat_id = update.message.chat_id
-            client = User.objects.get(tg_chat_id=chat_id)
+            client = Client.objects.get(tg_chat_id=chat_id)
             Job.objects.create(title=context.user_data['order_title'], client=client, description=text)
             message = 'Заказ создан. Вы можете его увидеть в разделе "Мои заказы"'
             context.bot.send_message(text=message, chat_id=chat_id)
@@ -116,7 +116,7 @@ def handle_current_customer_order(update: Update, context: CallbackContext):
 
 def handle_customer_orders(update: Update, context: CallbackContext):
     query = update.callback_query
-    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    client = Client.objects.get(tg_chat_id=query.message.chat_id)
     if not client.is_active:
         display_private_access(update, context)
         return 'MENU'
@@ -144,11 +144,11 @@ def handle_customer_orders(update: Update, context: CallbackContext):
 
 def handle_customer_orders_menu(update: Update, context: CallbackContext):
     query = update.callback_query
-    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    client = Client.objects.get(tg_chat_id=query.message.chat_id)
     if not client.is_active:
         display_private_access(update, context)
         return 'MENU'
-    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    client = Client.objects.get(tg_chat_id=query.message.chat_id)
     if query.data == 'Назад':
         keyboard = get_client_menu_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -219,7 +219,7 @@ def handle_customer_menu(update: Update, context: CallbackContext):
 
 def handle_order_creation(update: Update, context: CallbackContext):
     query = update.callback_query
-    client = User.objects.get(tg_chat_id=update.message.chat_id)
+    client = Client.objects.get(tg_chat_id=update.message.chat_id)
     if not client.is_active:
         display_private_access(update, context)
         return 'MENU'
