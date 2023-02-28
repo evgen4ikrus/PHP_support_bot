@@ -68,3 +68,27 @@ class Job(TimeStampedModel):
     @transition(field=status, source=Statuses.IN_PROGRESS, target=Statuses.DONE)
     def mark_done(self) -> Optional[Job]:
         return self
+
+
+class Message(TimeStampedModel):
+    job = models.ForeignKey(
+        "jobs.Job",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="messages",
+        verbose_name="Работа",
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="my_messages",
+        verbose_name="Отправитель",
+    )
+    message = models.TextField(verbose_name="Текст сообщения")
+
+    class Meta:
+        verbose_name = "Сообщение"
+        verbose_name_plural = "Сообщения"
