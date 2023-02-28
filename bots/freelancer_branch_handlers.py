@@ -5,7 +5,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
 from auth2.models import Freelancer
-from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_menu_freelancer_orders_keyboard, \
+from bots.keyboards import get_freelancer_menu_keyboard, get_menu_freelancer_orders_keyboard, \
     get_freelancer_current_orders_keyboard, get_freelancer_orders_keyboard, get_start_keyboard
 from jobs.models import Job
 

@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'jobs',
     'payrates',
     'products',
-    'freelance_orders',
+    'bots',
 ]
 
 MIDDLEWARE = [
