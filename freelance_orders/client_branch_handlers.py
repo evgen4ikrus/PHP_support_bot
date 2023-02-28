@@ -265,7 +265,10 @@ def handle_customer_menu(update: Update, context: CallbackContext):
 
 def handle_order_creation(update: Update, context: CallbackContext):
     query = update.callback_query
-    client = Client.objects.get(tg_chat_id=update.message.chat_id)
+    if query:
+        client = Client.objects.get(tg_chat_id=query.message.chat_id)
+    else:
+        client = Client.objects.get(tg_chat_id=update.message.chat_id)
     if not client.is_active:
         display_private_access(update, context)
         return 'MENU'
