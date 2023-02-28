@@ -1,11 +1,14 @@
+import os
+
+import redis
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
-import os
-import redis
+
 from auth2.models import Freelancer
 from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_menu_freelancer_orders_keyboard, \
     get_freelancer_current_orders_keyboard, get_freelancer_orders_keyboard, get_start_keyboard
 from jobs.models import Job
+
 _database = None
 
 
@@ -52,7 +55,7 @@ def display_private_access(update: Update, context: CallbackContext):
     if query:
         chat_id = query.message.chat_id
         context.bot.send_message(text=closed_access_message, chat_id=chat_id)
-        context.bot.send_message(text=message,reply_markup=reply_markup, chat_id=chat_id)
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
 
 
 def handle_sending_messages_to_customer(update: Update, context: CallbackContext):
@@ -67,7 +70,8 @@ def handle_sending_messages_to_customer(update: Update, context: CallbackContext
             keyboard = [[InlineKeyboardButton('Ответить', callback_data=f'Ответить;{update.message.chat_id}')]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             db.set(f'telegram_{order.client.tg_chat_id}', 'HANDLE_CUSTOMER_MESSAGE')
-            context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=order.client.tg_chat_id, parse_mode="html")
+            context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=order.client.tg_chat_id,
+                                     parse_mode="html")
             keyboard = [[InlineKeyboardButton('Вернуться в меню заказов', callback_data='Вернуться в меню заказов')]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             context.bot.send_message(text='Сообщение отправлено заказчику', reply_markup=reply_markup,
@@ -246,5 +250,5 @@ def handle_freelancer_menu(update: Update, context: CallbackContext):
         keyboard = get_start_keyboard()
         reply_markup = InlineKeyboardMarkup(keyboard)
         message = f'Привет, {user_name}'
-        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id )
+        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'MENU'
