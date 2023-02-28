@@ -33,7 +33,9 @@ def handle_sending_messages_to_freelancer(update: Update, context: CallbackConte
                       f'<b>{text}</b>\n\n' \
                       f'Чтобы ответить, найдите заказ в разделе "Мои заказы" и нажмите "Написать заказчику"\n' \
                       f'Нажмите `/start` для выхода в меню.'
-            context.bot.send_message(text=message, chat_id=order.freelancer.tg_chat_id, parse_mode="html")
+            keyboard = [[InlineKeyboardButton('Ответить', callback_data='Ответить')]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            context.bot.send_message(text=message, chat_id=order.freelancer.tg_chat_id, reply_markup=reply_markup, parse_mode="html")
             keyboard = [[InlineKeyboardButton('Вернуться в меню заказов', callback_data='Вернуться в меню заказов')]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             context.bot.send_message(text='Сообщение отправлено фрилансеру', reply_markup=reply_markup,
@@ -171,7 +173,7 @@ def handle_customer_orders_menu(update: Update, context: CallbackContext):
 
 def handle_customer_menu(update: Update, context: CallbackContext):
     query = update.callback_query
-    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    client, _ = Client.objects.get_or_create(tg_chat_id=query.message.chat_id)
     if not client.is_active:
         display_private_access(update, context)
         return 'MENU'
@@ -217,7 +219,7 @@ def handle_customer_menu(update: Update, context: CallbackContext):
 
 def handle_order_creation(update: Update, context: CallbackContext):
     query = update.callback_query
-    client = User.objects.get(tg_chat_id=query.message.chat_id)
+    client = User.objects.get(tg_chat_id=update.message.chat_id)
     if not client.is_active:
         display_private_access(update, context)
         return 'MENU'
