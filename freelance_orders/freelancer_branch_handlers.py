@@ -3,7 +3,6 @@ from telegram.ext import CallbackContext
 import os
 import redis
 from auth2.models import Freelancer
-from auth2.models import User
 from freelance_orders.keyboards import get_freelancer_menu_keyboard, get_menu_freelancer_orders_keyboard, \
     get_freelancer_current_orders_keyboard, get_freelancer_orders_keyboard, get_start_keyboard
 from jobs.models import Job
@@ -106,7 +105,7 @@ def handle_current_freelancer_order(update: Update, context: CallbackContext):
 
 def handle_freelancer_orders(update: Update, context: CallbackContext):
     query = update.callback_query
-    freelancer = User.objects.get(tg_chat_id=query.message.chat_id)
+    freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
     if not freelancer.is_active:
         display_private_access(update, context)
         return 'MENU'
@@ -136,7 +135,7 @@ def handle_freelancer_orders(update: Update, context: CallbackContext):
 
 def handle_menu_freelancer_orders(update: Update, context: CallbackContext):
     query = update.callback_query
-    freelancer = User.objects.get(tg_chat_id=query.message.chat_id)
+    freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
     if not freelancer.is_active:
         display_private_access(update, context)
         return 'MENU'
@@ -145,7 +144,7 @@ def handle_menu_freelancer_orders(update: Update, context: CallbackContext):
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=query.message.chat_id)
         return 'FREELANCER_MENU'
-    freelancer = User.objects.get(tg_chat_id=query.message.chat_id)
+    freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
     if query.data == 'Текущие заказы':
         status = 'IN_PROGRESS'
         orders = freelancer.jobs.filter(status=status)
@@ -164,7 +163,7 @@ def handle_menu_freelancer_orders(update: Update, context: CallbackContext):
 
 def handle_freelancer_order_description(update: Update, context: CallbackContext):
     query = update.callback_query
-    freelancer = User.objects.get(tg_chat_id=query.message.chat_id)
+    freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
     if not freelancer.is_active:
         display_private_access(update, context)
         return 'MENU'
@@ -189,7 +188,7 @@ def handle_freelancer_order_description(update: Update, context: CallbackContext
 
 def handle_order_search(update: Update, context: CallbackContext):
     query = update.callback_query
-    freelancer = User.objects.get(tg_chat_id=query.message.chat_id)
+    freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
     if not freelancer.is_active:
         display_private_access(update, context)
         return 'MENU'
@@ -225,7 +224,7 @@ def handle_order_search(update: Update, context: CallbackContext):
 
 def handle_freelancer_menu(update: Update, context: CallbackContext):
     query = update.callback_query
-    freelancer = User.objects.get(tg_chat_id=query.message.chat_id)
+    freelancer = Freelancer.objects.get(tg_chat_id=query.message.chat_id)
     if not freelancer.is_active:
         display_private_access(update, context)
         return 'MENU'
