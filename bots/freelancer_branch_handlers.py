@@ -1,25 +1,11 @@
-import os
-
-import redis
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
 from auth2.models import Freelancer
 from bots.keyboards import get_freelancer_menu_keyboard, get_menu_freelancer_orders_keyboard, \
-    get_freelancer_current_orders_keyboard, get_freelancer_orders_keyboard, get_start_keyboard
+    get_orders_keyboard, get_freelancer_orders_keyboard, get_start_keyboard
 from jobs.models import Job
-
-_database = None
-
-
-def get_database_connection():
-    global _database
-    if _database is None:
-        database_password = os.getenv('REDIS_DATABASE_PASSWORD')
-        database_host = os.getenv('REDIS_DATABASE_HOST')
-        database_port = os.getenv('REDIS_DATABASE_PORT')
-        _database = redis.Redis(host=database_host, port=int(database_port), password=database_password)
-    return _database
+from .bot_helpers import get_database_connection, display_private_access
 
 
 def handle_customer_message(update: Update, context: CallbackContext):
@@ -41,21 +27,6 @@ def handle_customer_message(update: Update, context: CallbackContext):
         message = 'Меню:'
         context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=update.message.chat_id)
         return 'FREELANCER_MENU'
-
-
-def display_private_access(update: Update, context: CallbackContext):
-    keyboard = get_start_keyboard()
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = f'Попробуйте ещё раз:'
-    closed_access_message = 'Доступ к приложению закрыт. Обратитесь к нашему менеджеру.'
-    if update.message:
-        update.message.reply_text(text=closed_access_message)
-        update.message.reply_text(text=message, reply_markup=reply_markup)
-    query = update.callback_query
-    if query:
-        chat_id = query.message.chat_id
-        context.bot.send_message(text=closed_access_message, chat_id=chat_id)
-        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
 
 
 def handle_sending_messages_to_customer(update: Update, context: CallbackContext):
@@ -159,7 +130,7 @@ def handle_menu_freelancer_orders(update: Update, context: CallbackContext):
         message = 'Выполненные заказы:'
     if not orders:
         message = 'Нет заказов'
-    keyboard = get_freelancer_current_orders_keyboard(orders, status)
+    keyboard = get_orders_keyboard(orders, status)
     reply_markup = InlineKeyboardMarkup(keyboard)
     context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
     return 'FREELANCER_ORDERS'

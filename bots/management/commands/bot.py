@@ -1,6 +1,3 @@
-import os
-
-import redis
 import telegram
 from django.core.management.base import BaseCommand
 from environs import Env
@@ -17,33 +14,7 @@ from bots.freelancer_branch_handlers import handle_freelancer_menu, handle_order
     handle_current_freelancer_order, handle_sending_messages_to_customer, handle_customer_message
 from bots.keyboards import get_freelancer_menu_keyboard, get_start_keyboard, get_client_menu_keyboard
 from products.models import Subscription
-
-_database = None
-
-
-def display_private_access(update, context):
-    keyboard = get_start_keyboard()
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = f'Попробуйте ещё раз:'
-    closed_access_message = 'Доступ к приложению закрыт. Обратитесь к нашему менеджеру.'
-    if update.message:
-        update.message.reply_text(text=closed_access_message)
-        update.message.reply_text(text=message, reply_markup=reply_markup)
-    query = update.callback_query
-    if query:
-        chat_id = query.message.chat_id
-        context.bot.send_message(text=closed_access_message, chat_id=chat_id)
-        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
-
-
-def get_database_connection():
-    global _database
-    if _database is None:
-        database_password = os.getenv('REDIS_DATABASE_PASSWORD')
-        database_host = os.getenv('REDIS_DATABASE_HOST')
-        database_port = os.getenv('REDIS_DATABASE_PORT')
-        _database = redis.Redis(host=database_host, port=int(database_port), password=database_password)
-    return _database
+from bots.bot_helpers import get_database_connection, display_private_access
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
