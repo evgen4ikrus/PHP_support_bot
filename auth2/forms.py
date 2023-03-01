@@ -33,7 +33,6 @@ class TelegramUserChangeForm(UserChangeForm):
             'last_name',
             'is_active',
         )
-
     def clean_is_staff(self):
         is_staff = self.cleaned_data["is_staff"]
         if is_staff:
