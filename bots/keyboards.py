@@ -45,7 +45,7 @@ def get_menu_freelancer_orders_keyboard():
     return keyboard
 
 
-def get_freelancer_current_orders_keyboard(orders, status):
+def get_orders_keyboard(orders, status):
     keyboard = [[InlineKeyboardButton(order.title, callback_data=f'Заказ;{status}:{order.id}')] for order in orders]
     keyboard.append([InlineKeyboardButton('Назад', callback_data='Назад;:')])
     return keyboard

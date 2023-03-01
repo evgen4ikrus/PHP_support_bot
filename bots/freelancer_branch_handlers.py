@@ -3,7 +3,7 @@ from telegram.ext import CallbackContext
 
 from auth2.models import Freelancer
 from bots.keyboards import get_freelancer_menu_keyboard, get_menu_freelancer_orders_keyboard, \
-    get_freelancer_current_orders_keyboard, get_freelancer_orders_keyboard, get_start_keyboard
+    get_orders_keyboard, get_freelancer_orders_keyboard, get_start_keyboard
 from jobs.models import Job
 from .bot_helpers import get_database_connection, display_private_access
 
@@ -130,7 +130,7 @@ def handle_menu_freelancer_orders(update: Update, context: CallbackContext):
         message = 'Выполненные заказы:'
     if not orders:
         message = 'Нет заказов'
-    keyboard = get_freelancer_current_orders_keyboard(orders, status)
+    keyboard = get_orders_keyboard(orders, status)
     reply_markup = InlineKeyboardMarkup(keyboard)
     context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=query.message.chat_id)
     return 'FREELANCER_ORDERS'
