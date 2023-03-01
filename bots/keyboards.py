@@ -42,7 +42,7 @@ def get_menu_freelancer_orders_keyboard():
         ],
         [InlineKeyboardButton('Назад', callback_data='Назад'), ]
     ]
-    return  keyboard
+    return keyboard
 
 
 def get_freelancer_current_orders_keyboard(orders, status):
@@ -72,4 +72,4 @@ def get_customer_orders_menu_keyboard():
         ],
         [InlineKeyboardButton('Назад', callback_data='Назад'), ]
     ]
-    return  keyboard
+    return keyboard

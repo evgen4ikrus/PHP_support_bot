@@ -1,16 +1,12 @@
-import os
-
-import redis
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 
 from auth2.models import Client
-from bots.keyboards import get_client_menu_keyboard, get_customer_orders_menu_keyboard, \
+from .keyboards import get_client_menu_keyboard, get_customer_orders_menu_keyboard, \
     get_freelancer_current_orders_keyboard, get_start_keyboard
 from jobs.models import Job
 from products.models import Subscription
-
-_database = None
+from .bot_helpers import display_private_access, get_database_connection
 
 
 def handle_freelancer_message(update: Update, context: CallbackContext):
@@ -31,41 +27,6 @@ def handle_freelancer_message(update: Update, context: CallbackContext):
         reply_markup = InlineKeyboardMarkup(keyboard)
         context.bot.send_message(text='Меню:', reply_markup=reply_markup, chat_id=update.message.chat_id)
         return 'CUSTOMER_MENU'
-
-
-def get_database_connection():
-    global _database
-    if _database is None:
-        database_password = os.getenv('REDIS_DATABASE_PASSWORD')
-        database_host = os.getenv('REDIS_DATABASE_HOST')
-        database_port = os.getenv('REDIS_DATABASE_PORT')
-        _database = redis.Redis(host=database_host, port=int(database_port), password=database_password)
-    return _database
-
-
-def display_private_access(update, context):
-    keyboard = get_start_keyboard()
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = f'Попробуйте ещё раз:'
-    closed_access_message = 'Доступ к приложению закрыт. Обратитесь к нашему менеджеру.'
-    if update.message:
-        update.message.reply_text(text=closed_access_message)
-        update.message.reply_text(text=message, reply_markup=reply_markup)
-    query = update.callback_query
-    if query:
-        chat_id = query.message.chat_id
-        context.bot.send_message(text=closed_access_message, chat_id=chat_id)
-        context.bot.send_message(text=message, reply_markup=reply_markup, chat_id=chat_id)
-
-
-def get_database_connection():
-    global _database
-    if _database is None:
-        database_password = os.getenv('REDIS_DATABASE_PASSWORD')
-        database_host = os.getenv('REDIS_DATABASE_HOST')
-        database_port = os.getenv('REDIS_DATABASE_PORT')
-        _database = redis.Redis(host=database_host, port=int(database_port), password=database_password)
-    return _database
 
 
 def handle_sending_messages_to_freelancer(update: Update, context: CallbackContext):
@@ -227,7 +188,8 @@ def handle_customer_menu(update: Update, context: CallbackContext):
         if client.orders_left():
             message = 'Примеры названий заказов:\n' \
                       'Нужно добавить в интернет-магазин фильтр товаров по цвету\n' \
-                      'Нужно выгрузить товары с сайта в Excel-таблице\nНужно загрузить 450 SKU на сайт из Excel таблицы\n\n' \
+                      'Нужно выгрузить товары с сайта в Excel-таблице\n' \
+                      'Нужно загрузить 450 SKU на сайт из Excel таблицы\n\n' \
                       'Введите название вашего заказа в поле для ввода:'
             keyboard = [
                 [InlineKeyboardButton('Отменить', callback_data='Отменить')]
